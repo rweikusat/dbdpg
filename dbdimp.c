@@ -692,12 +692,13 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         return 1;
     }
 
-    status = _result(aTHX_ imp_dbh, action ? "commit" : "rollback");
-        
+    if (!imp_dbh->conn_is_dead)
+        status = _result(aTHX_ imp_dbh, action ? "commit" : "rollback");
+
     /* Set this early, for scripts that continue despite the error below */
     imp_dbh->done_begin = DBDPG_FALSE;
 
-    if (PGRES_COMMAND_OK != status) {
+    if (!imp_dbh->conn_is_dead && PGRES_COMMAND_OK != status) {
         TRACE_PQERRORMESSAGE;
         pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: status not OK)\n", THEADER_slow);
@@ -923,6 +924,8 @@ SV * dbd_db_FETCH_attrib (SV * dbh, imp_dbh_t * imp_dbh, SV * keysv)
             retsv = newSViv((IV)imp_dbh->async_status);
         else if (strEQ("pg_expand_array", key))
             retsv = newSViv((IV)imp_dbh->expand_array);
+        else if (strEQ("pg_conn_is_dead", key))
+            retsv = newSViv((IV)imp_dbh->conn_is_dead);
         break;
 
     case 17: /* pg_server_prepare  pg_server_version  pg_int8_as_string */
@@ -1087,6 +1090,11 @@ int dbd_db_STORE_attrib (SV * dbh, imp_dbh_t * imp_dbh, SV * keysv, SV * valuesv
             imp_dbh->expand_array = newval ? DBDPG_TRUE : DBDPG_FALSE;
             retval = 1;
         }
+        else if (strEQ("pg_conn_is_dead", key)) {
+            imp_dbh->conn_is_dead = newval ? DBDPG_TRUE : DBDPG_FALSE;
+            retval = 1;
+        }
+
         break;
 
     case 17: /* pg_server_prepare  pg_int8_as_string */
@@ -4107,7 +4115,7 @@ int dbd_st_finish (SV * sth, imp_sth_t * imp_sth)
                     THEADER_slow, imp_dbh->async_status);
     
     /* Are we in the middle of an async for this statement handle? */
-    if (imp_dbh->async_status) {
+    if (imp_dbh->async_status && !imp_dbh->conn_is_dead) {
         if (imp_sth->async_status) {
             handle_old_async(aTHX_ sth, imp_dbh, PG_OLDQUERY_WAIT);
         }
@@ -4151,63 +4159,65 @@ static int pg_st_deallocate_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
     if (TRACE5_slow)
         TRC(DBILOGFP, "%stxn_status is %d\n", THEADER_slow, tstatus);
 
-    /* If we are in a failed transaction, rollback before deallocating */
-    if (PQTRANS_INERROR == tstatus) {
-        if (TRACE4_slow)
-            TRC(DBILOGFP, "%sIssuing rollback before deallocate\n", THEADER_slow);
-        {
-            /* If a savepoint has been set, rollback to the last savepoint instead of the entire transaction */
-            I32    alen = av_len(imp_dbh->savepoints);
-            if (alen > -1) {
-                char    *cmd;
-                SV * const sp = *av_fetch(imp_dbh->savepoints, alen, 0);
-                New(0, cmd, SvLEN(sp) + 13, char); /* Freed below */
-                if (TRACE4_slow)
-                    TRC(DBILOGFP, "%sRolling back to savepoint %s\n", THEADER_slow, SvPV_nolen(sp));
-                sprintf(cmd, "rollback to %s", SvPV_nolen(sp));
-                strncpy(tempsqlstate, imp_dbh->sqlstate, 6);
-                status = _result(aTHX_ imp_dbh, cmd);
-                Safefree(cmd);
+    if (!imp_dbh->conn_is_dead) {
+        /* If we are in a failed transaction, rollback before deallocating */
+        if (PQTRANS_INERROR == tstatus) {
+            if (TRACE4_slow)
+                TRC(DBILOGFP, "%sIssuing rollback before deallocate\n", THEADER_slow);
+            {
+                /* If a savepoint has been set, rollback to the last savepoint instead of the entire transaction */
+                I32    alen = av_len(imp_dbh->savepoints);
+                if (alen > -1) {
+                    char    *cmd;
+                    SV * const sp = *av_fetch(imp_dbh->savepoints, alen, 0);
+                    New(0, cmd, SvLEN(sp) + 13, char); /* Freed below */
+                    if (TRACE4_slow)
+                        TRC(DBILOGFP, "%sRolling back to savepoint %s\n", THEADER_slow, SvPV_nolen(sp));
+                    sprintf(cmd, "rollback to %s", SvPV_nolen(sp));
+                    strncpy(tempsqlstate, imp_dbh->sqlstate, 6);
+                    status = _result(aTHX_ imp_dbh, cmd);
+                    Safefree(cmd);
+                }
+                else {
+                    status = _result(aTHX_ imp_dbh, "ROLLBACK");
+                    imp_dbh->done_begin = DBDPG_FALSE;
+                }
             }
-            else {
-                status = _result(aTHX_ imp_dbh, "ROLLBACK");
-                imp_dbh->done_begin = DBDPG_FALSE;
+            if (PGRES_COMMAND_OK != status) {
+                /* This is not fatal, it just means we cannot deallocate */
+                if (TRACEWARN_slow) TRC(DBILOGFP, "%sRollback failed, so no deallocate\n", THEADER_slow);
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_deallocate_statement (cannot deallocate)\n", THEADER_slow);
+                return 1;
             }
         }
-        if (PGRES_COMMAND_OK != status) {
-            /* This is not fatal, it just means we cannot deallocate */
-            if (TRACEWARN_slow) TRC(DBILOGFP, "%sRollback failed, so no deallocate\n", THEADER_slow);
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_deallocate_statement (cannot deallocate)\n", THEADER_slow);
-            return 1;
-        }
-    }
 
 #if PGLIBVERSION >= 170000
 
-    if (TRACE5_slow)
-        TRC(DBILOGFP, "%sUsing PQclosePrepared: %s\n", THEADER_slow, imp_sth->prepare_name);
+        if (TRACE5_slow)
+            TRC(DBILOGFP, "%sUsing PQclosePrepared: %s\n", THEADER_slow, imp_sth->prepare_name);
 
-    imp_dbh->last_result = imp_sth->result
-        = PQclosePrepared(imp_dbh->conn, imp_sth->prepare_name);
-    imp_dbh->result_clearable = DBDPG_FALSE;
-    status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
+        imp_dbh->last_result = imp_sth->result
+            = PQclosePrepared(imp_dbh->conn, imp_sth->prepare_name);
+        imp_dbh->result_clearable = DBDPG_FALSE;
+        status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
 #else
-    New(0, stmt, strlen("DEALLOCATE ") + strlen(imp_sth->prepare_name) + 1, char); /* freed below */
+        New(0, stmt, strlen("DEALLOCATE ") + strlen(imp_sth->prepare_name) + 1, char); /* freed below */
 
-    sprintf(stmt, "DEALLOCATE %s", imp_sth->prepare_name);
+        sprintf(stmt, "DEALLOCATE %s", imp_sth->prepare_name);
 
-    if (TRACE5_slow)
-        TRC(DBILOGFP, "%sDeallocating (%s)\n", THEADER_slow, imp_sth->prepare_name);
+        if (TRACE5_slow)
+            TRC(DBILOGFP, "%sDeallocating (%s)\n", THEADER_slow, imp_sth->prepare_name);
 
-    status = _result(aTHX_ imp_dbh, stmt);
-    Safefree(stmt);
+        status = _result(aTHX_ imp_dbh, stmt);
+        Safefree(stmt);
 #endif
 
-    if (PGRES_COMMAND_OK != status) {
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_deallocate_statement (error: status not OK)\n", THEADER_slow);
-        return 2;
+        if (PGRES_COMMAND_OK != status) {
+            TRACE_PQERRORMESSAGE;
+            pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
+            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_deallocate_statement (error: status not OK)\n", THEADER_slow);
+            return 2;
+        }
     }
 
     Safefree(imp_sth->prepare_name);
@@ -4259,7 +4269,7 @@ void dbd_st_destroy (SV * sth, imp_sth_t * imp_sth)
         return;
     }
 
-    if (imp_dbh->async_status) {
+    if (imp_dbh->async_status && !imp_dbh->conn_is_dead) {
         handle_old_async(aTHX_ sth, imp_dbh, PG_OLDQUERY_WAIT);
     }
 
