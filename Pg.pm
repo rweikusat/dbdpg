@@ -41,7 +41,7 @@ use 5.008001;
 
     our %EXPORT_TAGS =
         (
-         async => [qw($DBDPG_DEFAULT PG_ASYNC PG_OLDQUERY_CANCEL PG_OLDQUERY_WAIT)],
+         async => [qw($DBDPG_DEFAULT PG_ASYNC PG_OLDQUERY_CANCEL PG_OLDQUERY_WAIT PG_ASYNC_CONN_READ PG_ASYNC_CONN_WRITE)],
          pg_limits => [qw($DBDPG_DEFAULT
                        PG_MIN_SMALLINT PG_MAX_SMALLINT PG_MIN_INTEGER PG_MAX_INTEGER PG_MAX_BIGINT PG_MIN_BIGINT
                        PG_MIN_SMALLSERIAL PG_MAX_SMALLSERIAL PG_MIN_SERIAL PG_MAX_SERIAL PG_MIN_BIGSERIAL PG_MAX_BIGSERIAL)],
@@ -151,6 +151,7 @@ use 5.008001;
         # uncoverable branch false
         if (!$methods_are_installed) {
             DBD::Pg::db->install_method('pg_cancel');
+            DBD::Pg::db->install_method('pg_continue_async_connect');
             DBD::Pg::db->install_method('pg_endcopy');
             DBD::Pg::db->install_method('pg_error_field');
             DBD::Pg::db->install_method('pg_getline');
