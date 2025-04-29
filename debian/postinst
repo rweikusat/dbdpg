@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# libdbd-mad-pg-perl postinst
+#
+
+PATH=/usr/local/sbin:/sbin:/usr/sbin:/usr/local/bin:/bin:/usr/bin
+export PATH
+
+test "$1" = configure || {
+    printf 'unsupported argument %s -- assuming everthing'\''s fine\n' "$1" >&2
+    exit 0
+}
+
+OLD_FILES=`cat <<EOF
+/usr/local/lib/perl/5.10.0/DBD/Pg.pm
+/usr/local/lib/perl/5.10.1/DBD/Pg.pm
+/usr/local/lib/perl/5.10.0/auto/DBD/Pg/Pg.bs
+/usr/local/lib/perl/5.10.1/auto/DBD/Pg/Pg.bs
+/usr/local/lib/perl/5.10.0/auto/DBD/Pg/Pg.so
+/usr/local/lib/perl/5.10.1/auto/DBD/Pg/Pg.so
+/usr/local/lib/perl/5.10.0/Bundle/DBD/Pg.pm
+/usr/local/lib/perl/5.10.1/Bundle/DBD/Pg.pm
+EOF`
+
+for x in $OLD_FILES;
+do
+    test -f "$x" || continue
+
+    printf 'Removing %s ...\n'  "$x" >&2
+    rm "$x"
+done

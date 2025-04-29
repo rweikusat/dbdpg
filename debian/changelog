@@ -1,0 +1,23 @@
+libdbd-mad-pg-perl (3.18.0-2) unstable; urgency=medium
+
+  * fixed various async bugs introduced during the update
+
+ -- Rainer Weikusat <rweikusat@cyberadapt.com>  Mon, 07 Oct 2024 21:46:49 +0100
+
+libdbd-mad-pg-perl (3.18.0-1) unstable; urgency=medium
+
+  * updated to upstream version 3.18.0
+
+ -- Rainer Weikusat <rweikusat@cyberadapt.com>  Thu, 09 May 2024 19:26:57 +0100
+
+libdbd-mad-pg-perl (2.18.0-2) unstable; urgency=low
+
+  * fixed misspelling of Safefree in an error path
+
+ -- Rainer Weikusat <rweikusat@cyberadapt.com>  Sun, 26 Aug 2018 22:36:00 +0100
+
+libdbd-mad-pg-perl (2.18.0-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Rainer Weikusat <rweikusat@cyberadapt.com>  Mon, 1 Jan 2018 21:34:29 +0000
