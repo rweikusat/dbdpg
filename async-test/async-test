@@ -3,8 +3,44 @@
 # beginnings of async test script
 #
 
+#*  uses
+#
+use DBI;
+use DBD::Pg;
+
+#*  constants
+#
+use constant CONNSPEC =>	sprintf('dbi:Pg:dbname=%s', $ENV{USER});
+
+#*  subs
+#
+sub msg
+{
+    my $msg;
+
+    $msg = sprintf($_[0], @_[1 .. $#_]);
+    print STDERR ($msg, "\n");
+}
+
+sub dbh_connect
+{
+    my ($fh, $dbh);
+    
+    msg('connecting');
+
+    $dbh = DBI->connect(CONNSPEC, '', '',
+                               {
+                                RaiseError => 1,
+                                pg_server_prepare => 1,
+                                pg_async_connect => 1});
+    open($fh, '<&', $dbh{pg_socket});
+}
+
 #*  main
 #
 {
-    print("Another day, more crap.\n");
+    my $dbh;
+    
+#    DBI->trace(15);
+    $dbh = dbh_connect();
 }
