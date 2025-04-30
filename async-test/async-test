@@ -33,7 +33,7 @@ sub dbh_connect
                                 RaiseError => 1,
                                 pg_server_prepare => 1,
                                 pg_async_connect => 1});
-    open($fh, '<&', $dbh{pg_socket});
+    open($fh, '<&', $$dbh{pg_socket});
 }
 
 #*  main
@@ -41,6 +41,6 @@ sub dbh_connect
 {
     my $dbh;
     
-#    DBI->trace(15);
+    DBI->trace(15);
     $dbh = dbh_connect();
 }
