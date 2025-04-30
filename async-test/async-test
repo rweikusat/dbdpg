@@ -1,0 +1,10 @@
+# -*- cperl -*-
+#
+# beginnings of async test script
+#
+
+#*  main
+#
+{
+    print("Another day, more crap.\n");
+}
