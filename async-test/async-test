@@ -22,6 +22,22 @@ sub msg
     print STDERR ($msg, "\n");
 }
 
+sub wait_for
+{
+    my ($fh, $what) = @_;
+    my ($rin, $win, $vec, $nf);
+    
+    vec($vec, fileno($fh), 1);
+    if ($what == PG_ASYNC_CONN_READ) {
+        $rin = $vec;
+    } else {
+        $win = $vec;
+    }
+
+    $nf = select($rin, $win, undef, undef);
+    msg('select returned %d', $nf);
+}
+
 sub dbh_connect
 {
     my ($fh, $dbh, $rc);
