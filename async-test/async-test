@@ -65,6 +65,6 @@ sub dbh_connect
 {
     my $dbh;
     
-    DBI->trace(15);
+#    DBI->trace(15);
     $dbh = dbh_connect();
 }
