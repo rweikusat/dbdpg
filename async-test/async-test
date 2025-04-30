@@ -27,7 +27,7 @@ sub wait_for
     my ($fh, $what) = @_;
     my ($rin, $win, $vec, $nf);
     
-    vec($vec, fileno($fh), 1);
+    vec($vec, fileno($fh), 1) = 1;
     if ($what == PG_ASYNC_CONN_READ) {
         $rin = $vec;
     } else {
@@ -56,6 +56,8 @@ sub dbh_connect
         msg('continue async connect %d', $rc);
         wait_for($fh, $rc) if $rc;
     } while $rc;
+
+    msg('connected');
 
     return $dbh;
 }
