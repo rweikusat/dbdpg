@@ -67,6 +67,8 @@ sub do_query
     my $dbh = $_[0];
     my ($fh, $sth, $rc);
 
+    msg('querying');
+
     $sth = $dbh->prepare('select * from the_tavel', { pg_sync => 1 });
     $sth->execute();
 
