@@ -62,11 +62,34 @@ sub dbh_connect
     return $dbh;
 }
 
+sub do_query
+{
+    my $dbh = $_[0];
+    my ($fh, $sth, $rc);
+
+    $sth = $dbh->prepare('select * from the_tavel', { pg_sync => 1 });
+    $sth->execute();
+
+    open($fh, '<&', $$dbh{pg_socket});
+
+    do {
+        wait_for($fh, PG_ASYNC_CONN_READ);
+        $rc = $dbh->pg_ready();
+    } until $rc;
+
+    $dbh->pg_result();
+    return $sth;
+}
+
 #*  main
 #
 {
-    my $dbh;
+    my ($dbh, $sth, $row);
     
 #    DBI->trace(15);
     $dbh = dbh_connect();
+    $sth = do_query($dbh);
+    while ($row = $sth->fetchrow_arrayref()) {
+        print("@$row", "\n");
+    }
 }
