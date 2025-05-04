@@ -47,7 +47,7 @@ sub wait_for_query
     $fd = $$dbh{pg_socket};
     do {
         wait_for($fd, PG_ASYNC_CONN_READ);
-        $rc = $dbg->pg_ready();
+        $rc = $dbh->pg_ready();
     } until $rc;
 
     $dbh->pg_result();
@@ -82,7 +82,7 @@ sub dbh_connect
 {
     my ($dbh, $sth, $row);
     
-    DBI->trace(15);
+#    DBI->trace(15);
     $dbh = dbh_connect();
 
     $sth = $dbh->prepare('select * from the_table where name = ?', { pg_async => 1 });
