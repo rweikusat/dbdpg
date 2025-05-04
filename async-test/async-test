@@ -70,8 +70,8 @@ sub do_query
 
     msg('querying');
 
-    $sth = $dbh->prepare('select * from the_table', { pg_async => 1 });
-    $sth->execute();
+    $sth = $dbh->prepare('select * from the_table where name = ?', { pg_async => 1 });
+    $sth->execute('Ludwig');
 
     open($fh, '<&', $$dbh{pg_socket});
 
