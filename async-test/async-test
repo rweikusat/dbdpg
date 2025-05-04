@@ -10,7 +10,6 @@ use DBD::Pg	':async';
 
 #*  constants
 #
-#use constant CONNSPEC =>	sprintf('dbi:Pg:dbname=%s', $ENV{USER});
 use constant CONNSPEC =>	'dbi:Pg:host=dbdpg-18793d83-dbdpg-test.l.aivencloud.com port=10056 dbname=defaultdb user=avnadmin password=XXXXXXXXXXXXXXXXXX';
 
 #*  subs
