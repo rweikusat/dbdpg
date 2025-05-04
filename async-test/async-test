@@ -10,7 +10,7 @@ use DBD::Pg	':async';
 
 #*  constants
 #
-use constant CONNSPEC =>	'dbi:Pg:host=dbdpg-18793d83-dbdpg-test.l.aivencloud.com port=10056 dbname=defaultdb user=avnadmin password=XXXXXXXXXXXXXXXXXX';
+use constant CSPEC_PRF =>	'dbi:Pg:';
 
 #*  subs
 #
@@ -60,7 +60,7 @@ sub make_cspec
     $rc = open($fh, '<', $acct);
     die("open $acct: $!") unless $rc;
 
-    return join(' ', map { chomp; join('=', split) } <$fh>);
+    return CSPEC_PRF.join(' ', map { chomp; join('=', split) } <$fh>);
 }
 
 sub dbh_connect
