@@ -97,8 +97,8 @@ sub dbh_connect
 #    DBI->trace(15);
     $dbh = dbh_connect('../../pg-conn');
 
-    $sth = $dbh->prepare('select * from the_table where name = ?', { pg_async => 1 });
-    $sth->execute('Ludwig');
+    $sth = $dbh->prepare('select * from whatis where section = ? order by cmd', { pg_async => 1 });
+    $sth->execute('3pm');
     wait_for_query($dbh);
 
     while ($row = $sth->fetchrow_arrayref()) {
