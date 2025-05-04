@@ -25,10 +25,10 @@ sub msg
 
 sub wait_for
 {
-    my ($fh, $what) = @_;
+    my ($fd, $what) = @_;
     my ($rin, $win, $vec, $nf);
     
-    vec($vec, fileno($fh), 1) = 1;
+    vec($vec, $fd, 1) = 1;
     if ($what == PG_ASYNC_CONN_READ) {
         $rin = $vec;
     } else {
@@ -39,9 +39,23 @@ sub wait_for
     msg('select returned %d', $nf);
 }
 
+sub wait_for_query
+{
+    my $dbh = $_[0];
+    my ($fd, $rc);
+
+    $fd = $$dbh{pg_socket};
+    do {
+        wait_for($fd, PG_ASYNC_CONN_READ);
+        $rc = $dbg->pg_ready();
+    } until $rc;
+
+    $dbh->pg_result();
+}
+
 sub dbh_connect
 {
-    my ($fh, $dbh, $rc);
+    my ($fd, $dbh, $rc);
     
     msg('connecting');
 
@@ -50,12 +64,12 @@ sub dbh_connect
                                 RaiseError => 1,
                                 pg_server_prepare => 1,
                                 pg_async_connect => 1});
-    open($fh, '<&', $$dbh{pg_socket});
+    $fd = $$dbh{pg_socket};
 
     do {
         $rc = $dbh->pg_continue_async_connect();
         msg('continue async connect %d', $rc);
-        wait_for($fh, $rc) if $rc;
+        wait_for($fd, $rc) if $rc;
     } while $rc;
 
     msg('connected');
@@ -63,35 +77,18 @@ sub dbh_connect
     return $dbh;
 }
 
-sub do_query
-{
-    my $dbh = $_[0];
-    my ($fh, $sth, $rc);
-
-    msg('querying');
-
-    $sth = $dbh->prepare('select * from the_table where name = ?', { pg_async => 1 });
-    $sth->execute('Ludwig');
-
-    open($fh, '<&', $$dbh{pg_socket});
-
-    do {
-        wait_for($fh, PG_ASYNC_CONN_READ);
-        $rc = $dbh->pg_ready();
-    } until $rc;
-
-    $dbh->pg_result();
-    return $sth;
-}
-
 #*  main
 #
 {
     my ($dbh, $sth, $row);
     
-#    DBI->trace(15);
+    DBI->trace(15);
     $dbh = dbh_connect();
-    $sth = do_query($dbh);
+
+    $sth = $dbh->prepare('select * from the_table where name = ?', { pg_async => 1 });
+    $sth->execute('Ludwig');
+    wait_for_query($dbh);
+
     while ($row = $sth->fetchrow_arrayref()) {
         print("@$row", "\n");
     }
