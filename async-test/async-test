@@ -52,13 +52,26 @@ sub wait_for_query
     $dbh->pg_result();
 }
 
+sub make_cspec
+{
+    my $acct = $_[0];
+    my ($fh, $rc);
+
+    $rc = open($fh, '<', $acct);
+    die("open $acct: $!") unless $rc;
+
+    return join(' ', map { chomp; join('=', split) } <$fh>);
+}
+
 sub dbh_connect
 {
-    my ($fd, $dbh, $rc);
+    my $acct = $_[0];
+    my ($cs, $fd, $dbh, $rc);
     
     msg('connecting');
 
-    $dbh = DBI->connect(CONNSPEC, '', '',
+    $cs = make_cspec($acct);
+    $dbh = DBI->connect($cs, '', '',
                                {
                                 RaiseError => 1,
                                 pg_server_prepare => 1,
@@ -82,7 +95,7 @@ sub dbh_connect
     my ($dbh, $sth, $row);
     
 #    DBI->trace(15);
-    $dbh = dbh_connect();
+    $dbh = dbh_connect('../../pg-conn');
 
     $sth = $dbh->prepare('select * from the_table where name = ?', { pg_async => 1 });
     $sth->execute('Ludwig');
