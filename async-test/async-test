@@ -117,7 +117,7 @@ sub print_pages
 {
     my ($dbh, $sth, $row);
     
-#    DBI->trace(15);
+    #DBI->trace(15);
     $dbh = dbh_connect('../../pg-conn');
     $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1 });
 
