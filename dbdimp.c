@@ -1751,7 +1751,7 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
         ) {
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning an immediate prepare\n", THEADER_slow);
 
-        if (pg_st_prepare_statement(aTHX_ sth, imp_sth)!=0) {
+        if (do_pg_st_prepare_statement(aTHX_ sth, imp_sth, imp_sth->asnyc_flag)!=0) {
             TRACE_PQERRORMESSAGE;
             croak ("%s", PQerrorMessage(imp_dbh->conn));
         }
