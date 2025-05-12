@@ -3633,8 +3633,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     }
     else if (PQTYPE_PREPARED == pqtype) { /* PQexecPrepared or PQsendQueryPrepared */
-        if (STH_ASYNC_PREPARE == imp_sth->async_status)
-            goto async_done;
     
         if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
                              THEADER_slow,
@@ -3651,8 +3649,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             }
 
             if (async) goto async_done;
-        }
-        else {
+        } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
+            if (TRACE5_slow) TRC(DBILOGFP, "%waiting for async preprare to complete (%s)\n",
+                            THEADER_slow, imp_sth->prepare_name);
+            goto async_done;
+        } else {
             if (TRACE5_slow) TRC(DBILOGFP, "%sUsing previously prepared statement (%s)\n",
                             THEADER_slow, imp_sth->prepare_name);
         }
