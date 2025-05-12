@@ -90,17 +90,12 @@ static ExecStatusType _sqlstate(pTHX_ imp_dbh_t *imp_dbh, PGresult *result);
 static int pg_db_rollback_commit (pTHX_ SV *dbh, imp_dbh_t *imp_dbh, int action);
 static SV *pg_st_placeholder_key (imp_sth_t *imp_sth, ph_t *currph, int i);
 static void pg_st_split_statement (pTHX_ imp_sth_t *imp_sth, char *statement);
-static int do_pg_st_prepare_statement (pTHX_ SV *sth, imp_sth_t *imp_sth, int async);
+static int pg_st_prepare_statement (pTHX_ SV *sth, imp_sth_t *imp_sth);
 static int pg_st_deallocate_statement(pTHX_ SV *sth, imp_sth_t *imp_sth);
 static PGTransactionStatusType pg_db_txn_status (pTHX_ imp_dbh_t *imp_dbh);
 static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int asyncflag);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
-
-static inline int pg_st_prepare_statement(pTHX_ SV *sth, imp_sth_t *imp_sth)
-{
-	return do_pg_st_prepare_statement(aTHX_ sth, imp_sth, 0);
-}
 
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
@@ -1751,7 +1746,7 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
         ) {
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning an immediate prepare\n", THEADER_slow);
 
-        if (do_pg_st_prepare_statement(aTHX_ sth, imp_sth, imp_sth->async_flag)!=0) {
+        if (pg_st_prepare_statement(aTHX_ sth, imp_sth)!=0) {
             TRACE_PQERRORMESSAGE;
             croak ("%s", PQerrorMessage(imp_dbh->conn));
         }
@@ -2328,7 +2323,7 @@ static void pg_st_split_statement (pTHX_ imp_sth_t * imp_sth, char * statement)
 
 
 /* ================================================================== */
-static int do_pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth, int async)
+static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
 {
     D_imp_dbh_from_sth;
     char *       statement;
@@ -2422,14 +2417,7 @@ static int do_pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth, int 
         imp_sth->result = NULL;
     }
 
-    if (!async) {
-        TRACE_PQPREPARE;
-        imp_dbh->last_result = imp_sth->result = PQprepare(imp_dbh->conn, imp_sth->prepare_name, statement, params, imp_sth->PQoids);
-        imp_dbh->result_clearable = DBDPG_FALSE;
-        status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
-
-        pq_call = "PQprepare";
-    } else {
+    if (imp_sth->async_flag) {
         TRACE_PQSENDPREPARE;
         status = PQsendPrepare(imp_dbh->conn, imp_sth->prepare_name, statement, params,
                                imp_sth->PQoids);
@@ -2442,6 +2430,13 @@ static int do_pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth, int 
         }
 
         pq_call = "PQsendPrepare";
+    } else {
+        TRACE_PQPREPARE;
+        imp_dbh->last_result = imp_sth->result = PQprepare(imp_dbh->conn, imp_sth->prepare_name, statement, params, imp_sth->PQoids);
+        imp_dbh->result_clearable = DBDPG_FALSE;
+        status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
+
+        pq_call = "PQprepare";
     }
 
     if (TRACE6_slow)
@@ -2457,7 +2452,7 @@ static int do_pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth, int 
         return -2;
     }
 
-    if (!async) {
+    if (imp_sth->async_flag) {
         imp_sth->prepared_by_us = DBDPG_TRUE; /* Done here so deallocate is not called spuriously */
         imp_dbh->prepare_number++; /* We do this at the end so we don't increment if we fail above */
     }
@@ -3645,7 +3640,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             if (imp_sth->prepared_by_us) {
                 if (TRACE5_slow) TRC(DBILOGFP, "%sRe-preparing statement\n", THEADER_slow);
             }
-            if (do_pg_st_prepare_statement(aTHX_ sth, imp_sth, async)!=0) {
+            if (pg_st_prepare_statement(aTHX_ sth, imp_sth)!=0) {
                 if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error)\n", THEADER_slow);
                 return -2;
             }
