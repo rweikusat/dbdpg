@@ -3382,6 +3382,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         || !imp_sth->server_prepare
         )
         pqtype = PQTYPE_EXEC;
+    else if (STH_ASYNC_PREPARE == imp_sth->async_status ) {
+        pqtype = PQTYPE_PREPARED;
+    }
     else if (0==imp_sth->switch_prepared || imp_sth->number_iterations < imp_sth->switch_prepared) {
         pqtype = PQTYPE_PARAMS;
     }
@@ -3630,6 +3633,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     }
     else if (PQTYPE_PREPARED == pqtype) { /* PQexecPrepared or PQsendQueryPrepared */
+        if (STH_ASYNC_PREPARE == imp_sth->async_status)
+            goto async_done;
     
         if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
                              THEADER_slow,
