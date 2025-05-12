@@ -3650,8 +3650,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
             if (async) goto async_done;
         } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
-            if (TRACE5_slow) TRC(DBILOGFP, "%waiting for async preprare to complete (%s)\n",
-                            THEADER_slow, imp_sth->prepare_name);
+            if (TRACE5_slow) TRC(DBILOGFP, "%swaiting for async preprare to complete (%s)\n",
+                                 THEADER_slow, imp_sth->prepare_name);
             goto async_done;
         } else {
             if (TRACE5_slow) TRC(DBILOGFP, "%sUsing previously prepared statement (%s)\n",
