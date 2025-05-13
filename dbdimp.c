@@ -2452,7 +2452,7 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         return -2;
     }
 
-    if (imp_sth->async_flag) {
+    if (!imp_sth->async_flag) {
         imp_sth->prepared_by_us = DBDPG_TRUE; /* Done here so deallocate is not called spuriously */
         imp_dbh->prepare_number++; /* We do this at the end so we don't increment if we fail above */
     }
