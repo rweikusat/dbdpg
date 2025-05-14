@@ -5756,7 +5756,7 @@ static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int as
 
         /* If an async prepare has just succeeded, the actual query also needs
            to be sent & the result dealt with */
-        if (async_sth->async_status == STH_ASYNC_PREPARE
+        if (async_sth && async_sth->async_status == STH_ASYNC_PREPARE
             && status == PGRES_COMMAND_OK) {
             ret = pq_send_prepared_query(aTHX_ imp_dbh, async_sth);
             if (!ret) {
