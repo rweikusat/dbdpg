@@ -5495,6 +5495,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         ret = 0;
         goto out;
     }
+    ret = 1;
 
     imp_sth = imp_dbh->async_sth;
     if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
