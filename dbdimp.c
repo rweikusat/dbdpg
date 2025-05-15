@@ -2431,6 +2431,10 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         imp_dbh->last_result = imp_sth->result = PQprepare(imp_dbh->conn, imp_sth->prepare_name, statement, params, imp_sth->PQoids);
         imp_dbh->result_clearable = DBDPG_FALSE;
         status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
+        if (PGRES_COMMAND_OK == status) {
+            imp_sth->prepared_by_us = DBDPG_TRUE; /* Done here so deallocate is not called spuriously */
+            imp_dbh->prepare_number++;
+        }
     }
 
     Safefree(statement);
@@ -2443,10 +2447,6 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         return -2;
     }
 
-    if (!imp_sth->async_flag) {
-        imp_sth->prepared_by_us = DBDPG_TRUE; /* Done here so deallocate is not called spuriously */
-        imp_dbh->prepare_number++; /* We do this at the end so we don't increment if we fail above */
-    }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_prepare_statement\n", THEADER_slow);
     return 0;
