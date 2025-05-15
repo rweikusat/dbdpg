@@ -2384,7 +2384,6 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
     if (TRACE6_slow)
         TRC(DBILOGFP, "%sPrepared statement (%s)\n", THEADER_slow, statement);
 
-    char *pq_call;
     int params = 0;
     if (imp_sth->numbound!=0) {
         params = imp_sth->numphs;
@@ -2428,19 +2427,12 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
             status = PGRES_FATAL_ERROR;
             _fatal_sqlstate(aTHX_ imp_dbh);
         }
-
-        pq_call = "PQsendPrepare";
     } else {
         TRACE_PQPREPARE;
         imp_dbh->last_result = imp_sth->result = PQprepare(imp_dbh->conn, imp_sth->prepare_name, statement, params, imp_sth->PQoids);
         imp_dbh->result_clearable = DBDPG_FALSE;
         status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
-
-        pq_call = "PQprepare";
     }
-
-    if (TRACE6_slow)
-        TRC(DBILOGFP, "%sUsing %s: %s\n", THEADER_slow, pq_call, statement);
 
     Safefree(statement);
     if (PGRES_COMMAND_OK != status) {
