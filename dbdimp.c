@@ -98,6 +98,11 @@ static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int asyncflag);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
+static inline int shall_async(imp_sth_t *imp_sth)
+{
+    return imp_sth->async_flag & PG_ASYNC;
+}
+
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
 {
@@ -2417,7 +2422,7 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         imp_sth->result = NULL;
     }
 
-    if (imp_sth->async_flag) {
+    if (shall_async(imp_sth)) {
         TRACE_PQSENDPREPARE;
         status = PQsendPrepare(imp_dbh->conn, imp_sth->prepare_name, statement, params,
                                imp_sth->PQoids);
@@ -3264,7 +3269,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     bool          same_result;
     
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_st_execute\n", THEADER_slow);
-    async = imp_sth->async_flag;
+    async = shall_async(imp_sth);
     
     if (NULL == imp_dbh->conn) {
         pg_error(aTHX_ sth, PGRES_FATAL_ERROR, "Cannot call execute on a disconnected database handle");
@@ -3473,7 +3478,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
         if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
                              THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec");
+                             shall_async(imp_sth) ? "PQsendQuery" : "PQexec");
 
         /* Go through and quote each value, then turn into a giant statement */
         for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
@@ -3493,7 +3498,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", 
                              THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec",
+                             shall_async(imp_sth) ? "PQsendQuery" : "PQexec",
                              statement);
             
         if (TSQL)
@@ -3536,7 +3541,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
         if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
                              THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams");
+                             shall_async(imp_sth) ? "PQsendQueryParams" : "PQexecParams");
 
         /* Figure out how big the statement plus placeholders will be */
         for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
@@ -3592,7 +3597,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n",
                              THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams",
+                             shall_async(imp_sth) ? "PQsendQueryParams" : "PQexecParams",
                              statement);
 
         if (async) {
@@ -3637,7 +3642,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     
         if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
                              THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared");
+                             shall_async(imp_sth) ? "PQsendQueryPrepared" : "PQexecPrepared");
 
         /* Prepare if it has not already been prepared (or it needs repreparing) */
         if (NULL == imp_sth->prepare_name) {
@@ -3671,7 +3676,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         }
         
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared",
+                             shall_async(imp_sth) ? "PQsendQueryPrepared" : "PQexecPrepared",
                              imp_sth->prepare_name);
 
         if (TSQL) {
@@ -3682,7 +3687,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             TRC(DBILOGFP, ");\n\n");
         }
 
-        if (imp_sth->async_flag & PG_ASYNC) {
+        if (shall_async(imp_sth)) {
             TRACE_PQSENDQUERYPREPARED;
             ret = PQsendQueryPrepared
                 (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
@@ -3721,7 +3726,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     /* Some form of PQexec* or PQsend* has been run at this point */
 
     /* If running asynchronously, we don't stick around for the result */
-    if (imp_sth->async_flag & PG_ASYNC) {
+    if (shall_async(imp_sth)) {
     async_done:
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         if (!imp_sth->async_status) imp_sth->async_status = STH_ASYNC;
