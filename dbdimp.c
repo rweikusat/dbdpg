@@ -79,7 +79,8 @@ enum {
 	DBH_ASYNC_CANCELLED =	-1,
 	DBH_NO_ASYNC,
 	DBH_ASYNC,
-	DBH_ASYNC_CONNECT
+	DBH_ASYNC_CONNECT,
+        DBH_ASYNC_CONNECT_POLL
 };
 
 static void pg_error(pTHX_ SV *h, int error_num, const char *error_msg);
@@ -3070,13 +3071,17 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     }            
 
     /* If we are still waiting on an async, handle it */
-    if (imp_dbh->async_status) {
-        if (imp_dbh->async_status == DBH_ASYNC_CONNECT) {
-            if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async rows: %d)\n", THEADER_slow, rows);
-            return -1;
-        }
+    switch (imp_dbh->async_status) {
+    case DBH_NO_ASYNC:
+        break;
 
+    case DBH_ASYNC_CONNECT:
+    case DBH_ASYNC_CONNECT_POLL:
+        if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async rows: %d)\n", THEADER_slow, rows);
+        return -1;
+
+    default:
         if (TRACE5_slow) TRC(DBILOGFP, "%shandling old async\n", THEADER_slow);
         rows = handle_old_async(aTHX_ dbh, imp_dbh, asyncflag);
         if (rows) {
@@ -3289,13 +3294,17 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     }
 
     /* Check for old async transactions */
-    if (imp_dbh->async_status) {
-        if (imp_dbh->async_status == DBH_ASYNC_CONNECT) {
-            if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute\n", THEADER_slow);
-            return -2;
-        }
+    switch (imp_dbh->async_status) {
+    case DBH_NO_ASYNC:
+        break;
 
+    case DBH_ASYNC_CONNECT:
+    case DBH_ASYNC_CONNECT_POLL:
+        if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute\n", THEADER_slow);
+        return -2;
+
+    default:
         if (TRACE7_slow) TRC(DBILOGFP, "%sAttempting to handle existing async transaction\n", THEADER_slow);
         ret = handle_old_async(aTHX_ sth, imp_dbh, imp_sth->async_flag);
         if (ret) {
