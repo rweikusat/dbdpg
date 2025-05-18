@@ -3648,73 +3648,72 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error)\n", THEADER_slow);
                 return -2;
             }
-
-            if (async) goto async_done;
         } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
             if (TRACE5_slow) TRC(DBILOGFP, "%swaiting for async preprare to complete (%s)\n",
                                  THEADER_slow, imp_sth->prepare_name);
-            goto async_done;
         } else {
             if (TRACE5_slow) TRC(DBILOGFP, "%sUsing previously prepared statement (%s)\n",
                             THEADER_slow, imp_sth->prepare_name);
         }
-        
-        if (TRACE7_slow) {
-            for (x=0,currph=imp_sth->ph; NULL != currph; currph=currph->nextph,x++) {
-                TRC(DBILOGFP, "%sPQexecPrepared item #%d\n", THEADER_slow, (int)x);
-                TRC(DBILOGFP, "%s-> Value: (%s)\n",
-                    THEADER_slow, (imp_sth->PQfmts && imp_sth->PQfmts[x]==1) ? "(binary, not shown)" 
+
+        if (STH_ASYNC_PREPARE != imp_sth->async_status) {
+            if (TRACE7_slow) {
+                for (x=0,currph=imp_sth->ph; NULL != currph; currph=currph->nextph,x++) {
+                    TRC(DBILOGFP, "%sPQexecPrepared item #%d\n", THEADER_slow, (int)x);
+                    TRC(DBILOGFP, "%s-> Value: (%s)\n",
+                        THEADER_slow, (imp_sth->PQfmts && imp_sth->PQfmts[x]==1) ? "(binary, not shown)" 
                                     : imp_sth->PQvals[x]);
-                TRC(DBILOGFP, "%s-> Length: (%d)\n", THEADER_slow, imp_sth->PQlens ? imp_sth->PQlens[x] : 0);
-                TRC(DBILOGFP, "%s-> Format: (%d)\n", THEADER_slow, imp_sth->PQfmts ? imp_sth->PQfmts[x] : 0);
+                    TRC(DBILOGFP, "%s-> Length: (%d)\n", THEADER_slow, imp_sth->PQlens ? imp_sth->PQlens[x] : 0);
+                    TRC(DBILOGFP, "%s-> Format: (%d)\n", THEADER_slow, imp_sth->PQfmts ? imp_sth->PQfmts[x] : 0);
+                }
             }
-        }
         
-        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared",
-                             imp_sth->prepare_name);
+            if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", THEADER_slow,
+                                 imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared",
+                                 imp_sth->prepare_name);
 
-        if (TSQL) {
-            TRC(DBILOGFP, "EXECUTE %s (\n", imp_sth->prepare_name);
-            for (x=0,currph=imp_sth->ph; NULL != currph; currph=currph->nextph,x++) {
-                TRC(DBILOGFP, "$%d: %s\n", (int)x+1, imp_sth->PQvals[x]);
+            if (TSQL) {
+                TRC(DBILOGFP, "EXECUTE %s (\n", imp_sth->prepare_name);
+                for (x=0,currph=imp_sth->ph; NULL != currph; currph=currph->nextph,x++) {
+                    TRC(DBILOGFP, "$%d: %s\n", (int)x+1, imp_sth->PQvals[x]);
+                }
+                TRC(DBILOGFP, ");\n\n");
             }
-            TRC(DBILOGFP, ");\n\n");
-        }
 
-        if (imp_sth->async_flag & PG_ASYNC) {
-            TRACE_PQSENDQUERYPREPARED;
-            ret = PQsendQueryPrepared
-                (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
-                 imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
-        }
-        else {
+            if (imp_sth->async_flag & PG_ASYNC) {
+                TRACE_PQSENDQUERYPREPARED;
+                ret = PQsendQueryPrepared
+                    (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
+                     imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+            }
+            else {
 
-            /* Free the last_result as needed, even if happens to be owned by us */
-            if (imp_dbh->last_result && imp_dbh->result_clearable) {
-                TRACE_PQCLEAR;
+                /* Free the last_result as needed, even if happens to be owned by us */
+                if (imp_dbh->last_result && imp_dbh->result_clearable) {
+                    TRACE_PQCLEAR;
 #if DEBUG_LAST_RESULT
-        fprintf(stderr, "CLEAR last_result of %ld at line %d of %s\n", (long int)imp_dbh->last_result,__LINE__,__func__);
+                    fprintf(stderr, "CLEAR last_result of %ld at line %d of %s\n", (long int)imp_dbh->last_result,__LINE__,__func__);
 #endif
-                PQclear(imp_dbh->last_result);
-                imp_dbh->last_result = NULL;
-            }
-            if (imp_sth->result) {
-                TRACE_PQCLEAR;
+                    PQclear(imp_dbh->last_result);
+                    imp_dbh->last_result = NULL;
+                }
+                if (imp_sth->result) {
+                    TRACE_PQCLEAR;
 #if DEBUG_LAST_RESULT
-        fprintf(stderr, "CLEAR sth->result of %ld at line %d of %s\n", (long int)imp_sth->result,__LINE__,__func__);
+                    fprintf(stderr, "CLEAR sth->result of %ld at line %d of %s\n", (long int)imp_sth->result,__LINE__,__func__);
 #endif
-                PQclear(imp_sth->result);
-                imp_sth->result = NULL;
-            }
+                    PQclear(imp_sth->result);
+                    imp_sth->result = NULL;
+                }
 
-            TRACE_PQEXECPREPARED;
-            imp_dbh->last_result = imp_sth->result
-                = PQexecPrepared(
-                                 imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
-                                 imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0
-                                 );
-            imp_dbh->result_clearable = DBDPG_FALSE;
+                TRACE_PQEXECPREPARED;
+                imp_dbh->last_result = imp_sth->result
+                    = PQexecPrepared(
+                        imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
+                        imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0
+                        );
+                imp_dbh->result_clearable = DBDPG_FALSE;
+            }
         }
     } /* end new-style prepare */
         
@@ -3722,7 +3721,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     /* If running asynchronously, we don't stick around for the result */
     if (imp_sth->async_flag & PG_ASYNC) {
-    async_done:
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         if (!imp_sth->async_status) imp_sth->async_status = STH_ASYNC;
         imp_dbh->async_sth = imp_sth;
