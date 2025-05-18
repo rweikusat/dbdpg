@@ -2417,7 +2417,7 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         imp_sth->result = NULL;
     }
 
-    if (imp_sth->async_flag) {
+    if (imp_sth->async_flag & PG_ASYNC) {
         TRACE_PQSENDPREPARE;
         status = PQsendPrepare(imp_dbh->conn, imp_sth->prepare_name, statement, params,
                                imp_sth->PQoids);
@@ -3264,7 +3264,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     bool          same_result;
     
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_st_execute\n", THEADER_slow);
-    async = imp_sth->async_flag;
+    async = imp_sth->async_flag & PG_ASYNC;
     
     if (NULL == imp_dbh->conn) {
         pg_error(aTHX_ sth, PGRES_FATAL_ERROR, "Cannot call execute on a disconnected database handle");
