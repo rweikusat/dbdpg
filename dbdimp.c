@@ -3260,11 +3260,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     long          ret = -2;
     PQExecType    pqtype = PQTYPE_UNKNOWN;
     long          power_of_ten;
-    int		  async;
     bool          same_result;
     
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_st_execute\n", THEADER_slow);
-    async = imp_sth->async_flag & PG_ASYNC;
     
     if (NULL == imp_dbh->conn) {
         pg_error(aTHX_ sth, PGRES_FATAL_ERROR, "Cannot call execute on a disconnected database handle");
@@ -3341,7 +3339,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
       deleted implicitly the next time pg_db_result is
       called.
     */
-    if (imp_sth->result && !async) {
+    if (imp_sth->result && !(imp_sth->async_flag & PG_ASYNC)) {
         TRACE_PQCLEAR;
         PQclear(imp_sth->result);
         imp_sth->result = NULL;
@@ -3499,7 +3497,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (TSQL)
             TRC(DBILOGFP, "%s;\n\n", statement);
 
-        if (async) {
+        if (imp_sth->async_flag & PG_ASYNC) {
             TRACE_PQSENDQUERY;
             ret = PQsendQuery(imp_dbh->conn, statement);
         }
@@ -3595,7 +3593,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                              imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams",
                              statement);
 
-        if (async) {
+        if (imp_sth->async_flag & PG_ASYNC) {
             TRACE_PQSENDQUERYPARAMS;
             ret = PQsendQueryParams
                 (imp_dbh->conn, statement, imp_sth->numphs,
