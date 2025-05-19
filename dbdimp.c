@@ -3308,7 +3308,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     case DBH_ASYNC:
         if (STH_ASYNC_PREPARE == imp_sth->async_status)
             break;
-        
+
     default:
         if (TRACE7_slow) TRC(DBILOGFP, "%sAttempting to handle existing async transaction\n", THEADER_slow);
         ret = handle_old_async(aTHX_ sth, imp_dbh, imp_sth->async_flag);
