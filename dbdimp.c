@@ -5535,7 +5535,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
                 PQclear(result);
             }
 
-            if (status != PGRES_COMMAND_OK) {
+            if (PGRES_COMMAND_OK != status) {
                 Safefree(imp_sth->prepare_name);
                 imp_sth->prepare_name = NULL;
                 imp_sth->async_status = STH_NO_ASYNC;
