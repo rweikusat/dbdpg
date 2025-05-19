@@ -3130,7 +3130,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
             if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: async do failed)\n", THEADER_slow);
             return -2;
         }
-        imp_dbh->async_status = 1;
+        imp_dbh->async_status = DBH_ASYNC;
         imp_dbh->async_sth = NULL; /* Needed? */
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async)\n", THEADER_slow);
