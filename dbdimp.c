@@ -5518,7 +5518,12 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
         ret = 1;
-        
+
+        /*
+          If async prepare has been used, deal with the result of the
+          prepare call and send the actual query afterwards if the
+          prepare was successful.
+        */
         imp_sth = imp_dbh->async_sth;
         if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
             status = PGRES_COMMAND_OK;
