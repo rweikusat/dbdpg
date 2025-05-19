@@ -5344,7 +5344,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_result\n", THEADER_slow);
 
-    if (imp_dbh->async_status != DBH_ASYNC) {
+    if (DBH_ASYNC != imp_dbh->async_status) {
         pg_error(aTHX_ h, PGRES_FATAL_ERROR, "No asynchronous query is running\n");
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (error: no async)\n", THEADER_slow);
         return -2;
@@ -5443,7 +5443,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         }
     }
 
-    if (imp_dbh->async_sth) {
+    if (NULL != imp_dbh->async_sth) {
         imp_dbh->async_sth->rows = rows;
         imp_dbh->async_sth->async_status = STH_NO_ASYNC;
     }
