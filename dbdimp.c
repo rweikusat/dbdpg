@@ -5470,6 +5470,17 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
    0 if the query is still running
    -2 for other errors
 */
+static int pg_db_ready_error(imp_dbh_t *imp_dbh, char *pq_call)
+{
+    _fatal_sqlstate(aTHX_ imp_dbh);
+
+    TRACE_PQERRORMESSAGE;
+    pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
+    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: %s failed)\n", THEADER_slow,
+                       pq_call);
+    return -2;
+}
+
 int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 {
     struct imp_sth_st *imp_sth;
@@ -5481,17 +5492,22 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_ready (async status: %d)\n",
                          THEADER_slow, imp_dbh->async_status);
 
-    if (imp_dbh->async_status != DBH_ASYNC) {
+    switch (imp_dbh->async_status) {
+    case DBH_NO_ASYNC:
         pg_error(aTHX_ h, PGRES_FATAL_ERROR, "No asynchronous query is running\n");
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: no async)\n", THEADER_slow);
+        return -1;
+
+    case DBH_ASYNC_CONNECT:
+    case DBH_ASYNC_CONNECT_POLL:
+        if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: not connected)\n", THEADER_slow);
         return -1;
     }
 
     TRACE_PQCONSUMEINPUT;
-    if (!PQconsumeInput(imp_dbh->conn)) {
-        pg_func = "PQconsumeInput";
-        goto pg_error;
-    }
+    if (!PQconsumeInput(imp_dbh->conn))
+        return pg_db_ready_error(dbh, "PQconsumeInput");
 
     TRACE_PQISBUSY;
     ret = PQisBusy(imp_dbh->conn);
@@ -5514,19 +5530,14 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         if (status != PGRES_COMMAND_OK) {
             Safefree(imp_sth->prepare_name);
             imp_sth->prepare_name = NULL;
-
-            pg_func = "PQsendPrepare";
-            goto pg_error;
+            return pg_db_ready_error(dbh, "PQsendPrepare");
         }
 
         imp_sth->prepared_by_us = DBDPG_TRUE;
         ++imp_dbh->prepare_number;
 
         ret = pq_send_prepared_query(aTHX_ imp_dbh, imp_sth);
-        if (!ret) {
-            pg_func = "PQsendQueryPrepared";
-            goto pg_error;
-        }
+        if (!ret) return pg_db_ready_error(dbh, "PQsendQueryPrepared");
 
         ret = 0;
         imp_sth->async_status = STH_ASYNC;
@@ -5535,15 +5546,6 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 out:
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready\n", THEADER_slow);
     return ret;
-
-pg_error:
-    _fatal_sqlstate(aTHX_ imp_dbh);
-
-    TRACE_PQERRORMESSAGE;
-    pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: %s failed)\n", THEADER_slow,
-                       pg_func);
-    return -2;
 } /* end of pg_db_ready */
 
 
