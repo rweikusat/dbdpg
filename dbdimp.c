@@ -5473,8 +5473,9 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, char *pq_call)
 {
     dTHX;
-    
-    _fatal_sqlstate(aTHX_ imp_dbh);
+
+    if (strcmp(imp_dbh->sqlstate, "00000") != 0)
+        _fatal_sqlstate(aTHX_ imp_dbh);
 
     TRACE_PQERRORMESSAGE;
     pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
@@ -5506,6 +5507,8 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: not connected)\n", THEADER_slow);
         return -1;
     }
+
+    strcpy(imp_dbh->sqlstate, "00000");
 
     TRACE_PQCONSUMEINPUT;
     if (!PQconsumeInput(imp_dbh->conn))
