@@ -1753,7 +1753,7 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
         }
 
         if (STH_ASYNC_PREPARE == imp_sth->async_status)
-            imp_dbh->async_status = DBH_SYNC;
+            imp_dbh->async_status = DBH_ASYNC;
     }
 
     /* Tell DBI to call destroy when this handle ends */
@@ -5470,8 +5470,10 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
    0 if the query is still running
    -2 for other errors
 */
-static int pg_db_ready_error(imp_dbh_t *imp_dbh, char *pq_call)
+static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, char *pq_call)
 {
+    dTHX;
+    
     _fatal_sqlstate(aTHX_ imp_dbh);
 
     TRACE_PQERRORMESSAGE;
@@ -5507,7 +5509,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
     TRACE_PQCONSUMEINPUT;
     if (!PQconsumeInput(imp_dbh->conn))
-        return pg_db_ready_error(dbh, "PQconsumeInput");
+        return pg_db_ready_error(h, imp_dbh, "PQconsumeInput");
 
     ret = 0;
     TRACE_PQISBUSY;
@@ -5528,14 +5530,19 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
             if (status != PGRES_COMMAND_OK) {
                 Safefree(imp_sth->prepare_name);
                 imp_sth->prepare_name = NULL;
-                return pg_db_ready_error(dbh, "PQsendPrepare");
+                imp_sth->async_status = STH_NO_ASYNC;
+
+                imp_dbh->async_status = DBH_NO_ASYNC;
+                imp_dbh->async_sth = NULL;
+                
+                return pg_db_ready_error(h, imp_dbh, "PQsendPrepare");
             }
 
             imp_sth->prepared_by_us = DBDPG_TRUE;
             ++imp_dbh->prepare_number;
 
             ret = pq_send_prepared_query(aTHX_ imp_dbh, imp_sth);
-            if (!ret) return pg_db_ready_error(dbh, "PQsendQueryPrepared");
+            if (!ret) return pg_db_ready_error(h, imp_dbh, "PQsendQueryPrepared");
             imp_sth->async_status = STH_ASYNC; 
 
             ret = 0;
