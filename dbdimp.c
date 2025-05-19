@@ -5509,41 +5509,39 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (!PQconsumeInput(imp_dbh->conn))
         return pg_db_ready_error(dbh, "PQconsumeInput");
 
+    ret = 0;
     TRACE_PQISBUSY;
-    ret = PQisBusy(imp_dbh->conn);
-    if (ret) {
-        ret = 0;
-        goto out;
-    }
-    ret = 1;
+    if (!PQisBusy(imp_dbh->conn)) {
+        ret = 1;
+        
+        imp_sth = imp_dbh->async_sth;
+        if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
+            status = PGRES_COMMAND_OK;
+            TRACE_PQGETRESULT;
+            while ((result = PQgetResult(imp_dbh->conn))) {
+                ret = _sqlstate(aTHX_ imp_dbh, result);
+                if (ret != PGRES_COMMAND_OK) status = ret;
 
-    imp_sth = imp_dbh->async_sth;
-    if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
-        status = PGRES_COMMAND_OK;
-        TRACE_PQGETRESULT;
-        while ((result = PQgetResult(imp_dbh->conn))) {
-            ret = _sqlstate(aTHX_ imp_dbh, result);
-            if (ret != PGRES_COMMAND_OK) status = ret;
+                PQclear(result);
+            }
 
-            PQclear(result);
-        }
-        if (status != PGRES_COMMAND_OK) {
-            Safefree(imp_sth->prepare_name);
-            imp_sth->prepare_name = NULL;
-            return pg_db_ready_error(dbh, "PQsendPrepare");
-        }
+            if (status != PGRES_COMMAND_OK) {
+                Safefree(imp_sth->prepare_name);
+                imp_sth->prepare_name = NULL;
+                return pg_db_ready_error(dbh, "PQsendPrepare");
+            }
 
-        imp_sth->prepared_by_us = DBDPG_TRUE;
-        ++imp_dbh->prepare_number;
+            imp_sth->prepared_by_us = DBDPG_TRUE;
+            ++imp_dbh->prepare_number;
 
-        ret = pq_send_prepared_query(aTHX_ imp_dbh, imp_sth);
-        if (!ret) return pg_db_ready_error(dbh, "PQsendQueryPrepared");
+            ret = pq_send_prepared_query(aTHX_ imp_dbh, imp_sth);
+            if (!ret) return pg_db_ready_error(dbh, "PQsendQueryPrepared");
+            imp_sth->async_status = STH_ASYNC; 
 
-        ret = 0;
-        imp_sth->async_status = STH_ASYNC;
+            ret = 0;
+       }
     }
 
-out:
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready\n", THEADER_slow);
     return ret;
 } /* end of pg_db_ready */
