@@ -5677,7 +5677,8 @@ static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int as
 
     imp_sth_t * async_sth;
     PGresult *result;
-    ExecStatusType status, ret;
+    ExecStatusType ret;
+    int status;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin handle_old_async (flag: %d)\n", THEADER_slow, asyncflag);
 
@@ -5706,7 +5707,7 @@ static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int as
             TRACE_PQFREECANCEL;
             PQfreeCancel(cancel);
             /* Suck up the cancellation notice */
-            status = PGRES_COMMAND_OK;
+            status = 0;
             TRACE_PQGETRESULT;
             while ((result = PQgetResult(imp_dbh->conn)) != NULL) {
                 TRACE_PQRESULTSTATUS;
@@ -5716,11 +5717,11 @@ static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int as
                 PQclear(result);
 
                 if (!(ret == PGRES_COMMAND_OK || ret == PGRES_TUPLES_OK))
-                    status = ret;
+                    status = -1;
             }
 
-            if (async_sth->async_status == STH_ASYNC_PREPARE
-                && status != PGRES_COMMAND_OK) {
+            if (STH_ASYNC_PREPARE == async_sth->async_status
+                && -1 == status) {
                 Safefree(async_sth->prepare_name);
                 async_sth->prepare_name = NULL;
             }
