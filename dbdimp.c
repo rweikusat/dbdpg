@@ -5580,17 +5580,12 @@ int pg_db_cancel(SV *h, imp_dbh_t *imp_dbh)
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_cancel (async status: %d)\n",
                          THEADER_slow, imp_dbh->async_status);
 
-    if (imp_dbh->async_status != DBH_ASYNC) {
-        switch (imp_dbh->async_status) {
-        case DBH_ASYNC_CANCELLED:
+    if (DBH_ASYNC != imp_dbh->async_status) {
+        if (DBH_ASYNC_CANCELLED == imp_dbh->async_status) {
             pg_error(aTHX_ h, PGRES_FATAL_ERROR,
                      "Asychronous query has already been cancelled");
-            break;
-
-        case DBH_NO_ASYNC:
-        case DBH_ASYNC_CONNECT:
+        } else {
             pg_error(aTHX_ h, PGRES_FATAL_ERROR, "No asynchronous query is running");
-            break;
         }
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_cancel (error: no async)\n", THEADER_slow);
