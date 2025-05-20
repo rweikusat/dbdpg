@@ -5715,7 +5715,7 @@ static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int as
                 TRACE_PQCLEAR;
                 PQclear(result);
 
-                if (ret != PGRES_COMMAND_OK && ret != PGRES_TUPLES_OK)
+                if (!(ret == PGRES_COMMAND_OK || ret == PGRES_TUPLES_OK))
                     status = ret;
             }
 
