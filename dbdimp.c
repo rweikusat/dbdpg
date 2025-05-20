@@ -5542,7 +5542,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
                 imp_dbh->async_status = DBH_NO_ASYNC;
                 imp_dbh->async_sth = NULL;
-                
+
                 return pg_db_ready_error(h, imp_dbh, "PQsendPrepare");
             }
 
