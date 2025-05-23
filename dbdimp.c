@@ -3245,7 +3245,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     long          ret = -2;
     PQExecType    pqtype = PQTYPE_UNKNOWN;
     long          power_of_ten;
-    bool          same_result;
     
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_st_execute\n", THEADER_slow);
     
