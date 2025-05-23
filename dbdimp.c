@@ -3277,7 +3277,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     }
 
     /* Check for old async transactions */
-    if (imp_dbh->async_status) {
+    if (imp_dbh->async_status && STH_ASYNC_PREPARE != imp_sth->async_status) {
         if (TRACE7_slow) TRC(DBILOGFP, "%sAttempting to handle existing async transaction\n", THEADER_slow);
         ret = handle_old_async(aTHX_ sth, imp_dbh, imp_sth->async_flag);
         if (ret) {
@@ -5523,7 +5523,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
             ret = pq_send_prepared_query(aTHX_ imp_dbh, imp_sth);
             if (!ret) return pg_db_ready_error(h, imp_dbh, "PQsendQueryPrepared");
-            imp_sth->async_status = STH_ASYNC; 
+            imp_sth->async_status = STH_ASYNC;
 
             ret = 0;
        }
