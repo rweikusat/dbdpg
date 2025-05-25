@@ -3173,7 +3173,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     case DBH_ASYNC_CONNECT:
     case DBH_ASYNC_CONNECT_POLL:
         if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async rows: %d)\n", THEADER_slow, rows);
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async rows: %ld)\n", THEADER_slow, rows);
         return -1;
 
     default:
