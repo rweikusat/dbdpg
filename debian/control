@@ -1,7 +1,7 @@
 Source: libdbd-pg-async-perl
 Section: perl
 Priority: optional
-Build-Depends: debhelper (>= 7), perl,
+Build-Depends: debhelper-compat (= 13), perl,
  libdbi-perl,
  libpq-dev
 Maintainer: Rainer Weikusat <rweikusat@talktalk.net>
