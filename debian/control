@@ -1,4 +1,4 @@
-Source: libdbd-mad-pg-perl
+Source: libdbd-pg-async-perl
 Section: perl
 Priority: optional
 Build-Depends: debhelper (>= 7), perl,
@@ -8,7 +8,7 @@ Maintainer: Rainer Weikusat <rweikusat@talktalk.net>
 Standards-Version: 3.9.1
 Homepage: http://search.cpan.org/dist/DBD-Pg/
 
-Package: libdbd-mad-pg-perl
+Package: libdbd-pg-async-perl
 Architecture: any
 Conflicts: libdbd-pg-perl
 Depends: ${misc:Depends}, ${perl:Depends}, ${shlibs:Depends},
