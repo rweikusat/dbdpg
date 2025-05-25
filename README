@@ -1,3 +1,15 @@
+=========
+
+Async connect and async preprare changes merged into master
+alongside debianization files. Presently, this is WIP and
+pushed to GitHub to have an external backup.
+
+-- rweikusat@talktalk.net
+
+==========
+
+
+
 
 DBD::Pg is Copyright (C) 1994-2025, Greg Sabino Mullane
 
