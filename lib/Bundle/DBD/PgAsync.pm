@@ -1,5 +1,5 @@
 
-package Bundle::DBD::Pg;
+package Bundle::DBD::PgASync;
 
 use strict;
 use warnings;
@@ -13,11 +13,11 @@ __END__
 
 =head1 NAME
 
-Bundle::DBD::Pg - A bundle to install all DBD::Pg related modules
+Bundle::DBD::PgAsync - A bundle to install all DBD::Pg::Async related modules
 
 =head1 SYNOPSIS
 
-C<perl -MCPAN -e 'install Bundle::DBD::Pg'>
+C<perl -MCPAN -e 'install Bundle::DBD::PgAsync'>
 
 =head1 CONTENTS
 
@@ -27,9 +27,8 @@ DBD::Pg
 
 =head1 DESCRIPTION
 
-This bundle includes all the modules needed for DBD::Pg (the Perl 
-interface to the Postgres database system). Please feel free to 
-ask for help or report any problems to dbd-pg@perl.org.
+This bundle includes all the modules needed for DBD::PgAsync (a Perl 
+interface to the Postgres database system).
 
 =cut
 

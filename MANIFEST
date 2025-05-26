@@ -2,7 +2,7 @@ Changes
 README
 CONTRIBUTING.md
 SIGNATURE
-Pg.pm
+PgAsync.pm
 META.yml
 META.json
 TODO
@@ -20,7 +20,7 @@ LICENSES/artistic.txt
 testme.tmp.pl
 
 Pg.h
-Pg.xs
+PgAsync.xs
 dbivport.h
 dbdimp.c
 dbdimp.h

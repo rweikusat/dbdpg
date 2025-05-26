@@ -48,7 +48,7 @@ environment variable and add "-lssl" to it, like this:
 
 export POSTGRES_LIB="/usr/local/pgsql/lib -lssl"
 
-The usual steps to install DBD::Pg:
+The usual steps to install DBD::Pg:Async
 
 1.   perl Makefile.PL
 2.   make
@@ -64,7 +64,7 @@ If all else fails, email dbd-pg\@perl.org for help.
 
 }
 
-print "Configuring DBD::Pg $VERSION\n";
+print "Configuring DBD::Async $VERSION\n";
 
 my $POSTGRES_INCLUDE;
 my $POSTGRES_LIB;
@@ -163,7 +163,7 @@ if ($os =~ /Win32/) {
 ## Warn about older versions
 if ($serverversion < 80000) {
     print "\n****************\n";
-    print "WARNING! DBD::Pg no longer supports versions less than 8.0.\n";
+    print "WARNING! DBD::PgAsync no longer supports versions less than 8.0.\n";
     print "You must upgrade PostgreSQL to a newer version.\n";
     print "****************\n\n";
     exit 1;
@@ -213,10 +213,10 @@ if ($ENV{DBDPG_GCCDEBUG}) {
 
 my %opts =
     (
-     NAME           => 'DBD::Pg',
-     VERSION_FROM   => 'Pg.pm',
+     NAME           => 'DBD::PgAsync',
+     VERSION_FROM   => 'PgAsync.pm',
      INC            => "-I$POSTGRES_INCLUDE -I$dbi_arch_dir",
-     OBJECT         => 'Pg$(OBJ_EXT) dbdimp$(OBJ_EXT) quote$(OBJ_EXT) types$(OBJ_EXT)',
+     OBJECT         => 'PgAsync$(OBJ_EXT) dbdimp$(OBJ_EXT) quote$(OBJ_EXT) types$(OBJ_EXT)',
      LIBS           => ["-L$POSTGRES_LIB -lpq -lm"],
      AUTHOR         => 'Greg Sabino Mullane',
      ABSTRACT       => 'PostgreSQL database driver for the DBI module',
@@ -234,10 +234,10 @@ my %opts =
      NO_META        => 1,
      NORECURS       => 1,
      PM             => {
-                        'Pg.pm' => '$(INST_LIBDIR)/Pg.pm',
-                        'lib/Bundle/DBD/Pg.pm' => '$(INST_LIB)/Bundle/DBD/Pg.pm',
+                        'PgAsync.pm' => '$(INST_LIBDIR)/PgAsync.pm',
+                        'lib/Bundle/DBD/PgAsync.pm' => '$(INST_LIB)/Bundle/DBD/PgAsync.pm',
                        },
-     clean          => { FILES => 'trace Pg.xsi README.testdatabase cover_db *.tst' },
+     clean          => { FILES => 'trace PgAsync.xsi README.testdatabase cover_db *.tst' },
      realclean      => { FILES => 'dbdpg_test_database/' },
 );
 
