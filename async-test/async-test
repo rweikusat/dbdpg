@@ -6,12 +6,12 @@
 #*  uses
 #
 use DBI;
-use DBD::Pg	':async';
+use DBD::PgAsync	':async';
 use Encode;
 
 #*  constants
 #
-use constant CSPEC_PRF =>	'dbi:Pg:';
+use constant CSPEC_PRF =>	'dbi:PgAsync:';
 use constant SECS =>		qw(1 4 7);
 
 use constant R_CMD =>		0;
