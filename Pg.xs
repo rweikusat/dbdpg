@@ -17,7 +17,7 @@
 #define strncasecmp(a,b,c) _strnicmp((a),(b),(c))
 #endif
 
-MODULE = DBD::Pg    PACKAGE = DBD::Pg
+MODULE = DBD::PgASync    PACKAGE = DBD::PgAsync
 
 
 I32
@@ -228,7 +228,7 @@ constant(name=Nullch)
             if (!name) {
                 name = GvNAME(CvGV(cv));
             }
-            croak("Unknown DBD::Pg constant '%s'", name);
+            croak("Unknown DBD::PgAsync constant '%s'", name);
         }
         else {
             RETVAL = ix;
@@ -242,7 +242,7 @@ INCLUDE: Pg.xsi
 # ------------------------------------------------------------
 # db functions
 # ------------------------------------------------------------
-MODULE=DBD::Pg    PACKAGE = DBD::Pg::db
+MODULE=DBD::PgAsync    PACKAGE = DBD::PgAsync::db
 
 
 SV*
@@ -346,7 +346,7 @@ _is_keyword(const char *str)
 # ------------------------------------------------------------
 # database level interface PG specific
 # ------------------------------------------------------------
-MODULE = DBD::Pg    PACKAGE = DBD::Pg::db
+MODULE = DBD::PgAsync    PACKAGE = DBD::PgAsync::db
 
 
 void state(dbh)
@@ -884,13 +884,13 @@ pg_cancel(dbh)
     ST(0) = pg_db_cancel(dbh, imp_dbh) ? &PL_sv_yes : &PL_sv_no;
 
 
-# -- end of DBD::Pg::db
+# -- end of DBD::PgAsync::db
 
 
 # ------------------------------------------------------------
 # statement level interface PG specific
 # ------------------------------------------------------------
-MODULE = DBD::Pg    PACKAGE = DBD::Pg::st
+MODULE = DBD::PgAsync    PACKAGE = DBD::PgAsync::st
 
 void state(sth)
 SV *sth;
