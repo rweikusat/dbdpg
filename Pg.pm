@@ -14,7 +14,7 @@ use warnings;
 use 5.008001;
 
 {
-    package DBD::Pg;
+    package DBD::PgAsync;
 
     use version; our $VERSION = qv('3.18.0');
 
@@ -89,10 +89,10 @@ use 5.008001;
     );
 
     {
-        package DBD::Pg::DefaultValue;
+        package DBD::PgAsync::DefaultValue;
         sub new { my $self = {}; return bless $self, shift; }
     }
-    our $DBDPG_DEFAULT = DBD::Pg::DefaultValue->new();
+    our $DBDPG_DEFAULT = DBD::PgAsync::DefaultValue->new();
     Exporter::export_ok_tags('pg_types', 'async', 'pg_limits');
     our @EXPORT = qw($DBDPG_DEFAULT PG_ASYNC PG_OLDQUERY_CANCEL PG_OLDQUERY_WAIT PG_BYTEA);
     XSLoader::load(__PACKAGE__, $VERSION);
@@ -140,58 +140,58 @@ use 5.008001;
         my $realversion = qv('3.18.0');
 
         $drh = DBI::_new_drh($class, {
-            'Name'        => 'Pg',
+            'Name'        => 'PgAsync',
             'Version'     => $realversion,
-            'Err'         => \$DBD::Pg::err,
-            'Errstr'      => \$DBD::Pg::errstr,
-            'State'       => \$DBD::Pg::sqlstate,
-            'Attribution' => "DBD::Pg $realversion by Greg Sabino Mullane and others",
+            'Err'         => \$DBD::PgAsync::err,
+            'Errstr'      => \$DBD::PgAsync::errstr,
+            'State'       => \$DBD::PgAsync::sqlstate,
+            'Attribution' => "DBD::PgAsync $realversion by Greg Sabino Mullane and others",
         });
 
         # uncoverable branch false
         if (!$methods_are_installed) {
-            DBD::Pg::db->install_method('pg_cancel');
-            DBD::Pg::db->install_method('pg_continue_connect');
-            DBD::Pg::db->install_method('pg_endcopy');
-            DBD::Pg::db->install_method('pg_error_field');
-            DBD::Pg::db->install_method('pg_getline');
-            DBD::Pg::db->install_method('pg_getcopydata');
-            DBD::Pg::db->install_method('pg_getcopydata_async');
-            DBD::Pg::db->install_method('pg_notifies');
-            DBD::Pg::db->install_method('pg_putcopydata');
-            DBD::Pg::db->install_method('pg_putcopyend');
-            DBD::Pg::db->install_method('pg_ping');
-            DBD::Pg::db->install_method('pg_putline');
-            DBD::Pg::db->install_method('pg_ready');
-            DBD::Pg::db->install_method('pg_release');
-            DBD::Pg::db->install_method('pg_result'); ## NOT duplicated below!
-            DBD::Pg::db->install_method('pg_rollback_to');
-            DBD::Pg::db->install_method('pg_savepoint');
-            DBD::Pg::db->install_method('pg_server_trace');
-            DBD::Pg::db->install_method('pg_server_untrace');
-            DBD::Pg::db->install_method('pg_type_info');
+            DBD::PgAsync::db->install_method('pg_cancel');
+            DBD::PgAsync::db->install_method('pg_continue_connect');
+            DBD::PgAsync::db->install_method('pg_endcopy');
+            DBD::PgAsync::db->install_method('pg_error_field');
+            DBD::PgAsync::db->install_method('pg_getline');
+            DBD::PgAsync::db->install_method('pg_getcopydata');
+            DBD::PgAsync::db->install_method('pg_getcopydata_async');
+            DBD::PgAsync::db->install_method('pg_notifies');
+            DBD::PgAsync::db->install_method('pg_putcopydata');
+            DBD::PgAsync::db->install_method('pg_putcopyend');
+            DBD::PgAsync::db->install_method('pg_ping');
+            DBD::PgAsync::db->install_method('pg_putline');
+            DBD::PgAsync::db->install_method('pg_ready');
+            DBD::PgAsync::db->install_method('pg_release');
+            DBD::PgAsync::db->install_method('pg_result'); ## NOT duplicated below!
+            DBD::PgAsync::db->install_method('pg_rollback_to');
+            DBD::PgAsync::db->install_method('pg_savepoint');
+            DBD::PgAsync::db->install_method('pg_server_trace');
+            DBD::PgAsync::db->install_method('pg_server_untrace');
+            DBD::PgAsync::db->install_method('pg_type_info');
 
-            DBD::Pg::st->install_method('pg_cancel');
-            DBD::Pg::st->install_method('pg_result');
-            DBD::Pg::st->install_method('pg_ready');
-            DBD::Pg::st->install_method('pg_canonical_ids');
-            DBD::Pg::st->install_method('pg_canonical_names');
+            DBD::PgAsync::st->install_method('pg_cancel');
+            DBD::PgAsync::st->install_method('pg_result');
+            DBD::PgAsync::st->install_method('pg_ready');
+            DBD::PgAsync::st->install_method('pg_canonical_ids');
+            DBD::PgAsync::st->install_method('pg_canonical_names');
 
-            DBD::Pg::db->install_method('pg_lo_creat');
-            DBD::Pg::db->install_method('pg_lo_open');
-            DBD::Pg::db->install_method('pg_lo_write');
-            DBD::Pg::db->install_method('pg_lo_read');
-            DBD::Pg::db->install_method('pg_lo_lseek');
-            DBD::Pg::db->install_method('pg_lo_lseek64');
-            DBD::Pg::db->install_method('pg_lo_tell');
-            DBD::Pg::db->install_method('pg_lo_tell64');
-            DBD::Pg::db->install_method('pg_lo_truncate');
-            DBD::Pg::db->install_method('pg_lo_truncate64');
-            DBD::Pg::db->install_method('pg_lo_close');
-            DBD::Pg::db->install_method('pg_lo_unlink');
-            DBD::Pg::db->install_method('pg_lo_import');
-            DBD::Pg::db->install_method('pg_lo_import_with_oid');
-            DBD::Pg::db->install_method('pg_lo_export');
+            DBD::PgAsync::db->install_method('pg_lo_creat');
+            DBD::PgAsync::db->install_method('pg_lo_open');
+            DBD::PgAsync::db->install_method('pg_lo_write');
+            DBD::PgAsync::db->install_method('pg_lo_read');
+            DBD::PgAsync::db->install_method('pg_lo_lseek');
+            DBD::PgAsync::db->install_method('pg_lo_lseek64');
+            DBD::PgAsync::db->install_method('pg_lo_tell');
+            DBD::PgAsync::db->install_method('pg_lo_tell64');
+            DBD::PgAsync::db->install_method('pg_lo_truncate');
+            DBD::PgAsync::db->install_method('pg_lo_truncate64');
+            DBD::PgAsync::db->install_method('pg_lo_close');
+            DBD::PgAsync::db->install_method('pg_lo_unlink');
+            DBD::PgAsync::db->install_method('pg_lo_import');
+            DBD::PgAsync::db->install_method('pg_lo_import_with_oid');
+            DBD::PgAsync::db->install_method('pg_lo_export');
 
             $methods_are_installed++;
         }
@@ -207,7 +207,7 @@ use 5.008001;
 
 
 {
-    package DBD::Pg::dr;
+    package DBD::PgAsync::dr;
 
     use strict;
 
@@ -224,7 +224,7 @@ use 5.008001;
             $connstring .= ";$conninfo";
         }
 
-        my $dbh = DBD::Pg::dr::connect($drh, $connstring) or return;
+        my $dbh = DBD::PgAsync::dr::connect($drh, $connstring) or return;
         $dbh->{AutoCommit}=1;
         my $SQL = 'SELECT pg_catalog.quote_ident(datname) FROM pg_catalog.pg_database ORDER BY 1';
         my $sth = $dbh->prepare($SQL);
@@ -262,7 +262,7 @@ use 5.008001;
          });
 
         # Connect to the database..
-        DBD::Pg::db::_login($dbh, $dbname, $user, $pass, $attr) or return undef;
+        DBD::PgAsync::db::_login($dbh, $dbname, $user, $pass, $attr) or return undef;
 
         my $version = $dbh->{pg_server_version};
         $dbh->{private_dbdpg}{version} = $version;
@@ -281,11 +281,11 @@ use 5.008001;
         };
     }
 
-} ## end of package DBD::Pg::dr
+} ## end of package DBD::PgAsync::dr
 
 
 {
-    package DBD::Pg::db;
+    package DBD::PgAsync::db;
 
     use DBI qw(:sql_types);
 
@@ -305,7 +305,7 @@ use 5.008001;
             'Statement' => $statement,
         });
 
-        DBD::Pg::st::_prepare($sth, $statement, @attribs);
+        DBD::PgAsync::st::_prepare($sth, $statement, @attribs);
 
         return $sth;
     }
@@ -455,20 +455,20 @@ use 5.008001;
     sub ping {
         my $dbh = shift;
         local $SIG{__WARN__} if $dbh->FETCH('PrintError');
-        my $ret = DBD::Pg::db::_ping($dbh);
+        my $ret = DBD::PgAsync::db::_ping($dbh);
         return $ret < 1 ? 0 : $ret;
     }
 
     sub pg_ping {
         my $dbh = shift;
         local $SIG{__WARN__} if $dbh->FETCH('PrintError');
-        return DBD::Pg::db::_ping($dbh);
+        return DBD::PgAsync::db::_ping($dbh);
     }
 
     sub pg_type_info {
         my($dbh,$pg_type) = @_;
         local $SIG{__WARN__} if $dbh->FETCH('PrintError');
-        return DBD::Pg::db::_pg_type_info($pg_type);
+        return DBD::PgAsync::db::_pg_type_info($pg_type);
     }
 
     # Column expected in statement handle returned.
@@ -585,7 +585,7 @@ use 5.008001;
                  _calc_col_size($typmod,$row->[$col_map{COLUMN_SIZE}]);
 
             # Replace the Pg type with the SQL_ type
-            $row->[$col_map{DATA_TYPE}] = DBD::Pg::db::pg_type_info($dbh,$row->[$col_map{DATA_TYPE}]);
+            $row->[$col_map{DATA_TYPE}] = DBD::PgAsync::db::pg_type_info($dbh,$row->[$col_map{DATA_TYPE}]);
 
             # Add pg_constraint
             my $SQL = q{SELECT pg_catalog.pg_get_constraintdef(oid) }.
@@ -1560,7 +1560,7 @@ use 5.008001;
             return sprintf '%02d.%02d.%.2d00', $1,$2,$3;
         }
         elsif ($ans eq 'DBDVERSION') {
-            my $simpleversion = $DBD::Pg::VERSION;
+            my $simpleversion = $DBD::PgAsync::VERSION;
             $simpleversion =~ s/_/./g;
             no if $] >= 5.022, warnings => 'redundant';
             return sprintf '%02d.%02d.%1d%1d%1d%1d', split (/\./, "$simpleversion.0.0.0.0.0.0");
@@ -1621,7 +1621,7 @@ use 5.008001;
 
 
 {
-    package DBD::Pg::st;
+    package DBD::PgAsync::st;
 
     sub parse_trace_flag {
         return DBD::Pg->parse_trace_flag($_[1]);
