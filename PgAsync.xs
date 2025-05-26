@@ -236,7 +236,7 @@ constant(name=Nullch)
     OUTPUT:
         RETVAL
 
-INCLUDE: Pg.xsi
+INCLUDE: PgAsync.xsi
 
 
 # ------------------------------------------------------------
