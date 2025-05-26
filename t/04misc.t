@@ -9,7 +9,7 @@ use lib 'blib/lib', 'blib/arch', 't';
 use Test::More;
 use Data::Dumper;
 use DBI;
-use DBD::Pg qw/:pg_types :pg_limits/;
+use DBD::PgAsync qw/:pg_types :pg_limits/;
 require 'dbdpg_test_setup.pl';
 select(($|=1,select(STDERR),$|=1)[1]);
 
@@ -27,12 +27,12 @@ isnt ($dbh, undef, 'Connect to database for miscellaneous tests');
 my $t = q{Method 'server_trace_flag' is available without a database handle};
 my $num;
 eval {
-    $num = DBD::Pg->parse_trace_flag('NONE');
+    $num = DBD::PgAsync->parse_trace_flag('NONE');
 };
 is ($@, q{}, $t);
 
-$t = q{Driver handle is obtainable directly from DBD::Pg};
-my $drh = DBD::Pg->driver;
+$t = q{Driver handle is obtainable directly from DBD::PgAsync};
+my $drh = DBD::PgAsync->driver;
 is (ref $drh, 'DBI::dr', $t);
 
 $t = q{Method 'private_attribute_info' is available without a database handle and returns an empty hashref};
@@ -40,7 +40,7 @@ my $result = $drh->private_attribute_info();
 is_deeply ($result, {}, $t);
 
 $t = q{Internal method 'CLONE' returns undef};
-$result = DBD::Pg->CLONE();
+$result = DBD::PgAsync->CLONE();
 is ($result, undef, $t);
 
 $t = 'Constant PG_MIN_SMALLINT returns expected value of -32768';
@@ -130,11 +130,11 @@ $t='Method "server_trace_flag" returns undef on bogus argument';
 is ($num, undef, $t);
 
 $t=q{Method "server_trace_flag" returns 0x00000100 for DBI value 'SQL'};
-$num = DBD::Pg->parse_trace_flag('SQL');
+$num = DBD::PgAsync->parse_trace_flag('SQL');
 is ($num, 0x00000100, $t);
 
-$t=q{Method "server_trace_flag" returns 0x01000000 for DBD::Pg flag 'pglibpq'};
-$num = DBD::Pg->parse_trace_flag('pglibpq');
+$t=q{Method "server_trace_flag" returns 0x01000000 for DBD::PgAsync flag 'pglibpq'};
+$num = DBD::PgAsync->parse_trace_flag('pglibpq');
 is ($num, 0x01000000, $t);
 
 $t=q{Database handle method "server_trace_flag" returns undef on bogus argument};
@@ -154,7 +154,7 @@ $num = $dbh->parse_trace_flags('SQL|pglibpq|pgstart');
 is ($num, 0x03000100, $t);
 
 $t = q{Method 'server_trace_flags' is available without a database handle};
-$num = DBD::Pg->parse_trace_flags('SQL|pglibpq|pgstart');
+$num = DBD::PgAsync->parse_trace_flags('SQL|pglibpq|pgstart');
 is ($num, 0x03000100, $t);
 
 my $flagexp = 24;
@@ -398,9 +398,9 @@ End pg_db_rollback_commit (result: 1)
     $expected = undef;
     is ($info, $expected, $t);
 
-    $t=q{Trace flag 'pglogin' works as expected with DBD::Pg->parse_trace_flag()};
+    $t=q{Trace flag 'pglogin' works as expected with DBD::PgAsync->parse_trace_flag()};
     $dbh->disconnect();
-    my $flagval = DBD::Pg->parse_trace_flag('pglogin');
+    my $flagval = DBD::PgAsync->parse_trace_flag('pglogin');
     seek $fh, 0, 0;
     truncate $fh, tell($fh);
     DBI->trace($flagval, $filename);
@@ -419,7 +419,7 @@ Disconnection complete
     $info =~ s/(Login connection string: ).+/$1/g;
     is ($info, "$expected$expected", $t);
 
-    $t=q{Trace flag 'pglogin' works as expected with DBD::Pg->parse_trace_flag()};
+    $t=q{Trace flag 'pglogin' works as expected with DBD::PgAsync->parse_trace_flag()};
     seek $fh, 0, 0;
     truncate $fh, tell($fh);
     DBI->trace($flagval, $filename);
@@ -465,7 +465,7 @@ dbdpg: Begin _sqlstate
 $t='The "data_sources" method did not throw an exception';
 my @sources;
 eval {
-    @sources = DBI->data_sources('Pg');
+    @sources = DBI->data_sources('PgAsync');
 };
 is ($@, q{}, $t);
 
@@ -474,23 +474,23 @@ if (! defined $sources[0]) {
     fail ('The data_sources() method returned an empty list');
 }
 else {
-    is (grep (/^dbi:Pg:dbname=template1$/, @sources), '1', $t);
+    is (grep (/^dbi:PgAsync:dbname=template1$/, @sources), '1', $t);
 }
 
 $t='The "data_sources" method returns undef when fed a bogus second argument';
-@sources = DBI->data_sources('Pg','foobar');
+@sources = DBI->data_sources('PgAsync','foobar');
 is (scalar @sources, 0, $t);
 
 $t='The "data_sources" method returns information when fed a valid port as the second arg';
 my $port = $dbh->{pg_port};
-@sources = DBI->data_sources('Pg',"port=$port");
+@sources = DBI->data_sources('PgAsync',"port=$port");
 isnt ($sources[0], undef, $t);
 
 $t='The "data_sources" method works when DBI_DSN is not set';
 {
     local $ENV{DBI_DSN};
     eval {
-        @sources = DBI->data_sources('Pg');
+        @sources = DBI->data_sources('PgAsync');
     };
     is ($@, q{}, $t);
 }
@@ -499,12 +499,12 @@ $t='The "data_sources" method works when DBI_USER is not set or not set';
 {
     local $ENV{DBI_USER} = 'alice';
     eval {
-        @sources = DBI->data_sources('Pg');
+        @sources = DBI->data_sources('PgAsync');
     };
     is ($@, q{}, $t);
     local $ENV{DBI_USER};
     eval {
-        @sources = DBI->data_sources('Pg');
+        @sources = DBI->data_sources('PgAsync');
     };
     is ($@, q{}, $t);
 }
@@ -513,33 +513,33 @@ $t='The "data_sources" method works when DBI_PASS is set or not set';
 {
     local $ENV{DBI_PASS} = 'foo';
     eval {
-        @sources = DBI->data_sources('Pg');
+        @sources = DBI->data_sources('PgAsync');
     };
     is ($@, q{}, $t);
     local $ENV{DBI_PASS};
     eval {
-        @sources = DBI->data_sources('Pg');
+        @sources = DBI->data_sources('PgAsync');
     };
     is ($@, q{}, $t);
 }
 
 SKIP: {
 
-    $t=q{The "data_sources" method returns information when 'dbi:Pg' is uppercased};
+    $t=q{The "data_sources" method returns information when 'dbi:PgAsync' is uppercased};
 
-    if (! exists $ENV{DBI_DSN} or $ENV{DBI_DSN} !~ /pg/i) {
+    if (! exists $ENV{DBI_DSN} or $ENV{DBI_DSN} !~ /pgasync/i) {
         skip 'Cannot test data_sources() DBI_DSN munging unless DBI_DSN is set', 2;
     }
 
     my $orig = $ENV{DBI_DSN};
-    $ENV{DBI_DSN} =~ s/DBI:PG/DBI:PG/i;
-    @sources = DBI->data_sources('Pg');
+    $ENV{DBI_DSN} =~ s/DBI:PGASYNC/DBI:PGASYNC/i;
+    @sources = DBI->data_sources('PgAsync');
     like ((join '' => @sources), qr{template0}, $t);
 
     $t=q{The "data_sources" method returns information when 'DBI:' is mixed case};
 
-    $ENV{DBI_DSN} =~ s/DBI:PG/dBi:pg/i;
-    @sources = DBI->data_sources('Pg');
+    $ENV{DBI_DSN} =~ s/DBI:PGASYNC/dBi:pgasync/i;
+    @sources = DBI->data_sources('PgAsync');
     like ((join '' => @sources), qr{template0}, $t);
 
     $ENV{DBI_DSN} = $orig;

@@ -8,7 +8,7 @@ use warnings;
 use lib 'blib/lib', 'blib/arch', 't';
 use Test::More;
 use Time::HiRes qw/sleep/;
-use DBD::Pg ':async';
+use DBD::PgAsync ':async';
 require 'dbdpg_test_setup.pl';
 select(($|=1,select(STDERR),$|=1)[1]);
 

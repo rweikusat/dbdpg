@@ -7,7 +7,7 @@ use lib 'blib/lib', 'blib/arch', 't';
 use Test::More;
 select(($|=1,select(STDERR),$|=1)[1]);
 
-use DBD::Pg ();
+use DBD::PgAsync ();
 
 for (
 # BEGIN GENERATED KEYWORDS
@@ -488,9 +488,9 @@ for (
 ) {
   # This tests only positive results.
   # Negative results should be foolproof, because is_keyword always ends with a strcmp()
-  ok (DBD::Pg::db::_is_keyword($_), $_);
+  ok (DBD::PgAsync::db::_is_keyword($_), $_);
 }
 # ...but why not test just one negative result
-ok (!DBD::Pg::db::_is_keyword('notakeyword'), 'notakeyword');
+ok (!DBD::PgAsync::db::_is_keyword('notakeyword'), 'notakeyword');
 
 done_testing;

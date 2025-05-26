@@ -1,5 +1,5 @@
 
-## Helper file for the DBD::Pg tests
+## Helper file for the DBD::PgAsync tests
 
 use strict;
 use warnings;
@@ -238,7 +238,7 @@ version: $version
 
     if (! $testdsn) {
         $helpconnect = 1;
-        $testdsn = $^O =~ /Win32/ ? 'dbi:Pg:host=localhost' : 'dbi:Pg:dbname=postgres';
+        $testdsn = $^O =~ /Win32/ ? 'dbi:PgAsync:host=localhost' : 'dbi:PgAsync:dbname=postgres';
     }
     if (! $testuser) {
         $testuser = 'postgres';
@@ -379,7 +379,7 @@ version: $version
 
             my $readme = "$testdir/README";
             if (open $fh, '>', $readme) {
-                print {$fh} "This is a test directory for DBD::Pg and may be removed\n";
+                print {$fh} "This is a test directory for DBD::PgAsync and may be removed\n";
                 print {$fh} "You may want to ensure the postmaster has been stopped first.\n";
                 print {$fh} "Check the data/postmaster.pid file\n";
                 close $fh or die qq{Could not close "$readme": $!\n};
@@ -525,7 +525,7 @@ version: $version
                 last GETHANDLE; ## Fail - no conf file
             }
             $debug and Test::More::diag qq{Writing to "$conf"};
-            print {$cfh} "\n\n## DBD::Pg testing parameters\n";
+            print {$cfh} "\n\n## DBD::PgAsync testing parameters\n";
             print {$cfh} "port=$testport\n";
             print {$cfh} "max_connections=11\n";
             print {$cfh} "log_statement = 'all'\n";
@@ -593,7 +593,7 @@ version: $version
         }
 
         ## Attempt to connect to this server
-        $testdsn = "dbi:Pg:dbname=postgres;port=$testport";
+        $testdsn = "dbi:PgAsync:dbname=postgres;port=$testport";
         if ($^O =~ /Win32/) {
             $testdsn .= ';host=localhost';
         }
@@ -660,7 +660,7 @@ version: $version
 
     my $connerror = $@;
     if (open $fh, '>', $helpfile) {
-        print {$fh} "## This is a temporary file created for testing DBD::Pg\n";
+        print {$fh} "## This is a temporary file created for testing DBD::PgAsync\n";
         print {$fh} '## Created: ' . scalar localtime() . "\n";
         print {$fh} "## Feel free to remove it!\n";
         print {$fh} "## Helpconnect: $helpconnect\n";
@@ -738,7 +738,7 @@ version: $version
 CREATE TABLE dbd_pg_test (
   id         integer not null primary key,
   lii        integer unique not null default nextval('dbd_pg_testsequence'),
-  pname      varchar(20) default 'Testing Default' ,
+  pname      varchar default 'Testing Default' ,
   val        text,
   score      float CHECK(score IN ('1','2','3')),
   Fixed      character(5),

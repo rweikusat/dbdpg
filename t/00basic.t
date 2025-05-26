@@ -1,6 +1,6 @@
 #!perl
 
-## Simply test that we can load the DBI and DBD::Pg modules,
+## Simply test that we can load the DBI and DBD::PgAsync modules,
 ## and that the latter gives a good version
 
 use 5.008001;
@@ -14,8 +14,8 @@ BEGIN {
 
     use_ok ('DBI') or BAIL_OUT 'Cannot continue without DBI';
 
-    ## If we cannot load DBD::Pg, output some compiler information for debugging:
-    if (! use_ok ('DBD::Pg')) {
+    ## If we cannot load DBD::PgAsync, output some compiler information for debugging:
+    if (! use_ok ('DBD::PgAsync')) {
         my $file = 'Makefile';
         if (! -e $file) {
             $file = '../Makefile';
@@ -33,8 +33,8 @@ BEGIN {
 
         diag 'If the error mentions libpq.so, please see the troubleshooting section of the README file';
 
-        BAIL_OUT 'Cannot continue without DBD::Pg';
+        BAIL_OUT 'Cannot continue without DBD::PgAsync';
     }
 }
-use DBD::Pg;
-like ($DBD::Pg::VERSION, qr/^v?[0-9]+\.[0-9]+\.[0-9]+(?:_[0-9]+)?$/, qq{Found DBD::Pg::VERSION as "$DBD::Pg::VERSION"});
+use DBD::PgAsync;
+like ($DBD::PgAsync::VERSION, qr/^v?[0-9]+\.[0-9]+\.[0-9]+(?:_[0-9]+)?$/, qq{Found DBD::PgAsync::VERSION as "$DBD::PgAsync::VERSION"});

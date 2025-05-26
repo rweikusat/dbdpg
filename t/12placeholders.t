@@ -8,7 +8,7 @@ use warnings;
 use lib 'blib/lib', 'blib/arch', 't';
 use Test::More;
 use DBI qw/:sql_types/;
-use DBD::Pg qw/:pg_types/;
+use DBD::PgAsync qw/:pg_types/;
 require 'dbdpg_test_setup.pl';
 select(($|=1,select(STDERR),$|=1)[1]);
 

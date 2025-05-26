@@ -13,7 +13,7 @@ use lib 'blib/lib', 'blib/arch', 't';
 use POSIX qw(:signal_h);
 use Test::More;
 use DBI ':sql_types';
-use DBD::Pg qw/ :async /;
+use DBD::PgAsync qw/ :async /;
 require 'dbdpg_test_setup.pl';
 select(($|=1,select(STDERR),$|=1)[1]);
 

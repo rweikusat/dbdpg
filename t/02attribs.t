@@ -9,7 +9,7 @@ use lib 'blib/lib', 'blib/arch', 't';
 use Data::Dumper;
 use Test::More;
 use DBI     ':sql_types';
-use DBD::Pg qw/ :pg_types :async /;
+use DBD::PgAsync qw/ :pg_types :async /;
 require 'dbdpg_test_setup.pl';
 select(($|=1,select(STDERR),$|=1)[1]);
 
@@ -201,9 +201,9 @@ ok ($dbh2->disconnect(), 'Disconnect with second database handle');
 # Test of the database handle attribute "Driver"
 #
 
-$t='$dbh->{Driver}{Name} returns correct value of "Pg"';
+$t='$dbh->{Driver}{Name} returns correct value of "PgAsync"';
 $attrib = $dbh->{Driver}->{Name};
-is ($attrib, 'Pg', $t);
+is ($attrib, 'PgAsync', $t);
 
 #
 # Test of the database handle attribute "Name"

@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use lib 'blib/lib', 'blib/arch', 't';
 use Data::Dumper;
-use DBD::Pg ':async';
+use DBD::PgAsync ':async';
 use Test::More;
 require 'dbdpg_test_setup.pl';
 select(($|=1,select(STDERR),$|=1)[1]);
