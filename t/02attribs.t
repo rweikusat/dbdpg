@@ -1055,7 +1055,7 @@ $t=q{Database handle attribute "pg_async_status" returns a 0 after a normal exec
 is ($sth->{pg_async_status}, 0, $t);
 
 $t=q{Statement handle attribute "pg_async_status" returns a 0 after an asynchronous prepare};
-$sth = $dbh->prepare('SELECT 123', { pg_async => PG_ASYNC });
+$sth = $dbh->prepare('SELECT pg_sleep(5)', { pg_async => PG_ASYNC });
 is ($sth->{pg_async_status}, 0, $t);
 $t=q{Database handle attribute "pg_async_status" returns a 0 after an asynchronous prepare};
 is ($dbh->{pg_async_status}, 0, $t);
@@ -1065,12 +1065,17 @@ is ($sth->{pg_async_status}, 1, $t);
 $t=q{Database handle attribute "pg_async_status" returns a 1 after an asynchronous execute};
 is ($dbh->{pg_async_status}, 1, $t);
 
+DBI->trace(15);
+
 $t=q{Statement handle attribute "pg_async_status" returns a -1 after a cancel};
 $dbh->pg_cancel();
+$dbh->pg_result();
 is ($sth->{pg_async_status}, -1, $t);
 $t=q{Database handle attribute "pg_async_status" returns a -1 after a cancel};
 is ($dbh->{pg_async_status}, -1, $t);
 sleep 3;
+
+DBI->trace(0);
 
 #
 # Test of the handle attribute "Active"
