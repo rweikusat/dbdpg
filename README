@@ -24,3 +24,11 @@ sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
+
+sync-removal notes
+------------------
+
+Present work: Turn pg_db_cancel into a function which sends a cancel
+              request but doesn't silently block the client with incorrectly (failure 
+	      to call PQresult until NULL is returned) waiting for the result
+              of the cancelled query.
