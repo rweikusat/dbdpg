@@ -1,7 +1,7 @@
 DBD::PgAsync
 ------------
 
-This is fork of DBD::Pg (3.18.0) intended to fully support
+This is a fork of DBD::Pg (3.18.0) intended to fully support
 asynchronous database operations. In addition to the existing DBD::Pg
 async support, this needs
 
