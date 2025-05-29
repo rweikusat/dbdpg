@@ -47,6 +47,8 @@ Oid lo_import_with_oid (PGconn *conn, char *filename, unsigned int lobjId) {
 #define PG_DIAG_SEVERITY_NONLOCALIZED 'V'
 #endif
 
+#define SQLST_CANCELLED "57014"
+
 #ifndef PGErrorVerbosity
 typedef enum
     {
@@ -5505,6 +5507,11 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
             pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
             break;
         case PGRES_FATAL_ERROR:
+            if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
+                rows = 0;
+                break;
+            }
+            
         default:
             rows = -2;
             TRACE_PQERRORMESSAGE;
