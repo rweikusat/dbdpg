@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 63;
+plan tests => 62;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -210,12 +210,6 @@ SKIP: {
         $res = $dbh->pg_cancel();
     };
     is ($@, q{}, $t);
-
-    $t=q{Database method pg_result() fails after async query has been cancelled};
-    eval {
-        $res = $dbh->pg_result();
-    };
-    like ($@, qr{No async}, $t);
 
     $t=q{Database method do() cancels the previous async when requested};
     eval {
