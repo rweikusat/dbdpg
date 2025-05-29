@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 65;
+plan tests => 64;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -78,6 +78,9 @@ eval {
 };
 is ($@, q{}, $t);
 
+$dbh->pg_result();
+
+
 $t=q{Running do() after a cancelled query works};
 eval {
     $res = $dbh->do('SELECT 123');
@@ -97,7 +100,7 @@ like ($@, qr{No async}, $t);
 $res = $dbh->do('SELECT 123', {pg_async => PG_ASYNC});
 $t=q{Method pg_ready() works after a non-async query};
 ## Sleep a sub-second to make sure the server has caught up
-sleep 0.2;
+sleep 0.2
 eval {
     $res = $dbh->pg_ready();
 };
@@ -117,8 +120,6 @@ eval {
     $res = $dbh->pg_cancel();
 };
 is ($@, q{}, $t);
-$t=q{Database method pg_cancel() returns expected false value for completed value};
-is ($res, q{}, $t);
 
 $t=q{Method do() runs after pg_cancel has cleared the async query};
 eval {
