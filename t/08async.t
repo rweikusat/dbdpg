@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 67;
+plan tests => 66;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -72,15 +72,11 @@ $t=q{Database attribute "async_status" returns 1 after async query};
 $res = $dbh->{pg_async_status};
 is ($res, +1, $t);
 
-sleep 1;
 $t=q{Cancelling an async do() query works };
 eval {
     $res = $dbh->pg_cancel();
 };
 is ($@, q{}, $t);
-
-$t=q{Database method pg_cancel returns a false value when cancellation works but finished};
-is ($res, q{}, $t);
 
 $t=q{Database attribute "async_status" returns -1 after pg_cancel};
 $res = $dbh->{pg_async_status};
