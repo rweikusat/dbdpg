@@ -260,9 +260,8 @@ SKIP: {
     $dbh->do('select pg_sleep(10)', {pg_async => PG_ASYNC});
     $dbh->pg_cancel();
     $res = $dbh->pg_result();
-    is($res, 0, $t);
+    is(0+$res, 0, $t);
 } ## end of pg_sleep skip
-
 
 $t=q{Method execute() works when prepare has PG_ASYNC flag};
 $sth = $dbh->prepare('SELECT 123', {pg_async => PG_ASYNC});
