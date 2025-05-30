@@ -5789,7 +5789,7 @@ static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int as
                     status = -1;
             }
 
-            if (STH_ASYNC_PREPARE == async_sth->async_status
+            if (async_sth && STH_ASYNC_PREPARE == async_sth->async_status
                 && -1 == status) {
                 Safefree(async_sth->prepare_name);
                 async_sth->prepare_name = NULL;
