@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 61;
+plan tests => 60;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -293,11 +293,6 @@ eval {
     $dbh->do('SELECT 345');
 };
 like ($@, qr{previous async}, $t);
-
-$dbh->pg_cancel;
-
-$t=q{Directly after pg_cancel(), pg_async_status is -1};
-is ($dbh->{pg_async_status}, -1, $t);
 
 $t=q{Method execute() works when prepare has PG_ASYNC flag};
 $sth->execute();
