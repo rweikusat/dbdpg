@@ -256,6 +256,11 @@ SKIP: {
 
     $sth->finish();
 
+    $t=q{Database method pg_result returns 0 after query was cancelled};
+    $dbh->do('select pg_sleep(10)', {pg_async => PG_ASYNC});
+    $dbh->pg_cancel();
+    $res = $dbh->pg_result();
+    is($res, 0, $t);
 } ## end of pg_sleep skip
 
 
