@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 61;
+plan tests => 62;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -211,7 +211,11 @@ SKIP: {
     };
     is ($@, q{}, $t);
 
-    $dbh->pg_result();
+    $t=q{Database method pg_result works after a cancelled query};
+    eval {
+        $res = $dbh->pg_result();
+    };
+    is($@, q{}, $t);
 
     $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
     $t=q{Database method do() cancels the previous async when requested};
