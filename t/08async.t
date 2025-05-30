@@ -211,6 +211,9 @@ SKIP: {
     };
     is ($@, q{}, $t);
 
+    $dbh->pg_result();
+
+    $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
     $t=q{Database method do() cancels the previous async when requested};
     eval {
         $res = $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC + PG_OLDQUERY_CANCEL});
