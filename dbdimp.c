@@ -5511,7 +5511,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
                 rows = 0;
                 break;
             }
-            
+
         default:
             rows = -2;
             TRACE_PQERRORMESSAGE;
