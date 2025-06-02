@@ -331,7 +331,6 @@ $t=q{Method fetchall_arrayref returns correct result after pg_result};
 is_deeply ($res, [[123]], $t);
 
 $dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
-$dbh->commit();
 $sth->execute();
 
 $t=q{Method prepare() works when passed in PG_OLDQUERY_CANCEL};
