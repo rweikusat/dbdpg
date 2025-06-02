@@ -71,7 +71,6 @@ typedef enum
      SvRMAGICAL(SvRV(h)) && (SvMAGIC(SvRV(h)))->mg_type == 'P')
 
 enum {
-	DBH_ASYNC_CANCELLED =	-1,
 	DBH_NO_ASYNC,
 	DBH_ASYNC,
 	DBH_ASYNC_CONNECT,
@@ -79,7 +78,6 @@ enum {
 };
 
 enum {        
-	STH_ASYNC_CANCELLED =	-1,
 	STH_NO_ASYNC,
 	STH_ASYNC,
 	STH_ASYNC_PREPARE
@@ -5803,7 +5801,7 @@ static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int as
             }
         }
     }
-    else if (asyncflag & PG_OLDQUERY_WAIT || imp_dbh->async_status == -1) {
+    else if (asyncflag & PG_OLDQUERY_WAIT) {
         /* Finish up the outstanding query and throw out the result, unless an error */
         if (TRACE3_slow) { TRC(DBILOGFP, "%sWaiting for old async command to finish\n", THEADER_slow); }
 
