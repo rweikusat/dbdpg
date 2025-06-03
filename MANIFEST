@@ -1,10 +1,7 @@
 Changes
 README
 CONTRIBUTING.md
-SIGNATURE
 PgAsync.pm
-META.yml
-META.json
 TODO
 Makefile.PL
 .dir-locals.el
