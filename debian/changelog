@@ -1,5 +1,7 @@
-libdbd-pg-async-perl (3.18.0-3) unstable; urgency=medium
+libdbd-pg-async-perl (0.1) unstable; urgency=medium
 
-  * 
+  * asynchronous connect
+  * asynchronous prepare
+  * asynchronous cancel
 
- --
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Tue, 03 Jun 2025 12:53:44 +0100
