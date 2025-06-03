@@ -159,7 +159,7 @@ END {
     ## Don't show current dir to the world via CPAN::Reporter results
     $dsn =~ s{host=/.*(dbdpg_test_database/data/socket)}{host=<pwd>/$1};
 
-    my $ver = defined $DBD::Pg::VERSION ? $DBD::Pg::VERSION : '?';
+    my $ver = defined $DBD::PgAsync::VERSION ? $DBD::PgAsync::VERSION : '?';
     my $user = exists $ENV{DBI_USER} ? $ENV{DBI_USER} : '<not set>';
     my $offset = 27;
 
@@ -220,7 +220,7 @@ END {
 
     diag
         "\nDBI                         Version $DBI::VERSION\n".
-        "DBD::Pg                     Version $ver\n".
+        "DBD::PgAsync                Version $ver\n".
         "Perl                        Version $pv\n".
         "OS                          $^O\n".
         "PostgreSQL (compiled)       $pglibversion\n".
