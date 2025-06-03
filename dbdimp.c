@@ -5696,7 +5696,7 @@ int pg_db_cancel(SV *h, imp_dbh_t *imp_dbh)
     cancel = PQgetCancel(imp_dbh->conn);
 
     /* This almost always works. If not, free our structure and complain loudly */
-    TRACE_PQGETCANCEL;
+    TRACE_PQCANCEL;
     if (! PQcancel(cancel,errbuf,sizeof(errbuf))) {
         TRACE_PQFREECANCEL;
         PQfreeCancel(cancel);
@@ -5889,7 +5889,7 @@ int dbd_st_cancel(SV *sth, imp_sth_t *imp_sth)
     cancel = PQgetCancel(imp_dbh->conn);
 
     /* This almost always works. If not, free our structure and complain loudly */
-    TRACE_PQGETCANCEL;
+    TRACE_PQCANCEL;
     if (!PQcancel(cancel, errbuf, sizeof(errbuf))) {
         TRACE_PQFREECANCEL;
         PQfreeCancel(cancel);
