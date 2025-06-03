@@ -17,18 +17,11 @@ PQconnectPoll. See manpage for more details.
 2) is implemented as well. The code should transparently use
 PQsendPrepare instead of PQprepare for async statements.
 
-3) nothing done for this so far.
+3) completed so far: pg_cancel no longer waits for the result of the
+cancelled query. 
 
 Bug reports etc specifically about this code should probably rather be
 sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
-
-sync-removal notes
-------------------
-
-Present work: Turn pg_db_cancel into a function which sends a cancel
-              request but doesn't silently block the client with incorrectly (failure 
-	      to call PQresult until NULL is returned) waiting for the result
-              of the cancelled query.
