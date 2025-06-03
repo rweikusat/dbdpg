@@ -1,4 +1,12 @@
-Changes for the DBD::Pg module
+Changes for the DBD::PgAsync module
+
+--- 06/03/2025 rweikusat@talktalk.net ---
+
+ - asynchronous connect
+ - asynchronous prepare
+ - asynchronous cancel
+
+Changes for DBD::Pg module
 
 RT refers to rt.cpan.org
 
