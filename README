@@ -25,3 +25,6 @@ sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
+
+async-autotrans: Make automatically started transactions when AutoCommit is off
+                 work asynchronously.
