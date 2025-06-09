@@ -173,6 +173,7 @@ int dbd_db_login6 (SV * dbh, imp_dbh_t * imp_dbh, char * dbname, char * uid, cha
     int            async_connect;
 
     async_connect = want_async_connect(aTHX_ attr);
+    imp_dbh->prep_top = 0;
 
     if (TSTART_slow) {
         TRC(DBILOGFP, "%sBegin dbd_db_login6\n", THEADER_slow);
