@@ -3805,7 +3805,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             if (imp_sth->async_flag & PG_ASYNC) {
                 if (imp_dbh->prep_top) {
                     stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
-                    if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep %s\n",
+                    if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep statement '%s'\n",
                                          THEADER_slow, stmt);
 
                     TRACE_PQSENDQUERY;
