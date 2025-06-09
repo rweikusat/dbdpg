@@ -3608,6 +3608,13 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             TRC(DBILOGFP, "%s;\n\n", stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
+            if (imp_dbh->prep_top) {
+                stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
+
+                if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep statement '%s'\n",
+                                     THEADER_slow, stmt);
+            }
+
             TRACE_PQSENDQUERY;
             ret = PQsendQuery(imp_dbh->conn, stmt);
         }
@@ -3705,10 +3712,19 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                              stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
-            TRACE_PQSENDQUERYPARAMS;
-            ret = PQsendQueryParams
-                (imp_dbh->conn, stmt, imp_sth->numphs,
-                 imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+            if (imp_dbh->prep_top) {
+                stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
+                if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep statement '%s'\n",
+                                     THEADER_slow, stmt);
+
+                TRACE_PQSENDQUERY;
+                ret = PQsendQuery(imp_dbh->conn, stmt);
+            } else {
+                TRACE_PQSENDQUERYPARAMS;
+                ret = PQsendQueryParams
+                    (imp_dbh->conn, stmt, imp_sth->numphs,
+                     imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+            }
         }
         else {
 
@@ -3787,10 +3803,19 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             }
 
             if (imp_sth->async_flag & PG_ASYNC) {
-                TRACE_PQSENDQUERYPREPARED;
-                ret = PQsendQueryPrepared
-                    (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
-                     imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+                if (imp_dbh->prep_top) {
+                    stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
+                    if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep %s\n",
+                                         THEADER_slow, stmt);
+
+                    TRACE_PQSENDQUERY;
+                    ret = PQsendQuery(imp_dbh->conn, stmt);
+                } else {
+                    TRACE_PQSENDQUERYPREPARED;
+                    ret = PQsendQueryPrepared
+                        (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
+                         imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+                }
             }
             else {
 
