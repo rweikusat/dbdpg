@@ -1738,6 +1738,7 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
     imp_sth->async_flag        = 0;
     imp_sth->async_status      = STH_NO_ASYNC;
     imp_sth->prepare_name      = NULL;
+    imp_sth->statement         = NULL;
     imp_sth->firstword         = NULL;
     imp_sth->result            = NULL;
     imp_sth->type_info         = NULL;
@@ -3351,11 +3352,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     STRLEN        execsize, x;
     unsigned int  placeholder_digits;
     seg_t *       currseg;
-    char *        statement = NULL;
     int           num_fields;
     long          ret = -2;
     PQExecType    pqtype = PQTYPE_UNKNOWN;
     long          power_of_ten;
+    char *        stmt;
     
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_st_execute\n", THEADER_slow);
     
@@ -3579,33 +3580,36 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                              THEADER_slow,
                              imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec");
 
+        Safefree(imp_sth->statement);
+
         /* Go through and quote each value, then turn into a giant statement */
         for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
             if (currseg->placeholder!=0)
                 execsize += currseg->ph->quotedlen;
         }
 
-        New(0, statement, execsize+1, char); /* freed below at end of this 'if' block */
-        statement[0] = '\0';
+        New(0, imp_sth->statement, execsize+1, char); /* freed below at end of this 'if' block */
+        stmt = imp_sth->statement;
+        stmt[0] = '\0';
         for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
             if (currseg->segment != NULL)
-                strcat(statement, currseg->segment);
+                strcat(stmt, currseg->segment);
             if (currseg->placeholder!=0)
-                strcat(statement, currseg->ph->quoted);
+                strcat(stmt, currseg->ph->quoted);
         }
-        statement[execsize] = '\0';
+        stmt[execsize] = '\0';
 
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", 
                              THEADER_slow,
                              imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec",
-                             statement);
+                             stmt);
             
         if (TSQL)
-            TRC(DBILOGFP, "%s;\n\n", statement);
+            TRC(DBILOGFP, "%s;\n\n", stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
             TRACE_PQSENDQUERY;
-            ret = PQsendQuery(imp_dbh->conn, statement);
+            ret = PQsendQuery(imp_dbh->conn, stmt);
         }
         else {
 
@@ -3629,12 +3633,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
             TRACE_PQEXEC;
             imp_dbh->last_result = imp_sth->result
-                = PQexec(imp_dbh->conn, statement);
+                = PQexec(imp_dbh->conn, stmt);
             imp_dbh->result_clearable = DBDPG_FALSE;
         }
-
-        Safefree(statement);
-
     }
     else if (PQTYPE_PARAMS == pqtype) { /* PQexecParams or PQsendQueryParams */
 
@@ -3642,31 +3643,35 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                              THEADER_slow,
                              imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams");
 
-        /* Figure out how big the statement plus placeholders will be */
-        for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
-            if (0==currseg->placeholder)
-                continue;
-            /* The parameter itself: dollar sign plus digit(s) */
-            power_of_ten = 10;
-            for (placeholder_digits=1; placeholder_digits<7; placeholder_digits++, power_of_ten *= 10) {
-                if (currseg->placeholder < power_of_ten)
-                    break;
+        if (!imp_sth->statement) {
+            /* Figure out how big the statement plus placeholders will be */
+            for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
+                if (0==currseg->placeholder)
+                    continue;
+                /* The parameter itself: dollar sign plus digit(s) */
+                power_of_ten = 10;
+                for (placeholder_digits=1; placeholder_digits<7; placeholder_digits++, power_of_ten *= 10) {
+                    if (currseg->placeholder < power_of_ten)
+                        break;
+                }
+                if (placeholder_digits >= 7)
+                    croak("Too many placeholders!");
+                execsize += placeholder_digits+1;
             }
-            if (placeholder_digits >= 7)
-                croak("Too many placeholders!");
-            execsize += placeholder_digits+1;
-        }
 
-        /* Create the statement */
-        New(0, statement, execsize+1, char); /* freed below at end of this 'if' block */
-        statement[0] = '\0';
-        for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
-            if (currseg->segment != NULL)
-                strcat(statement, currseg->segment);
-            if (currseg->placeholder!=0)
-                sprintf(strchr(statement, '\0'), "$%d", currseg->placeholder);
-        }
-        statement[execsize] = '\0';
+            /* Create the statement */
+            New(0, imp_sth->statement, execsize+1, char); /* freed below at end of this 'if' block */
+            stmt = imp_sth->statement;
+            stmt[0] = '\0';
+            for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
+                if (currseg->segment != NULL)
+                    strcat(stmt, currseg->segment);
+                if (currseg->placeholder!=0)
+                    sprintf(strchr(stmt, '\0'), "$%d", currseg->placeholder);
+            }
+            stmt[execsize] = '\0';
+        } else
+            stmt = imp_sth->statement;
             
         /* Populate PQoids */
         if (NULL == imp_sth->PQoids) {
@@ -3687,7 +3692,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         }
 
         if (TSQL) {
-            TRC(DBILOGFP, "EXECUTE %s (\n", statement);
+            TRC(DBILOGFP, "EXECUTE %s (\n", stmt);
             for (x=0,currph=imp_sth->ph; NULL != currph; currph=currph->nextph,x++) {
                 TRC(DBILOGFP, "$%d: %s\n", (int)x+1, imp_sth->PQvals[x]);
             }
@@ -3697,12 +3702,12 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n",
                              THEADER_slow,
                              imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams",
-                             statement);
+                             stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
             TRACE_PQSENDQUERYPARAMS;
             ret = PQsendQueryParams
-                (imp_dbh->conn, statement, imp_sth->numphs,
+                (imp_dbh->conn, stmt, imp_sth->numphs,
                  imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
         }
         else {
@@ -3728,14 +3733,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             TRACE_PQEXECPARAMS;
             imp_dbh->last_result = imp_sth->result
                 = PQexecParams(
-                               imp_dbh->conn, statement, imp_sth->numphs,
+                               imp_dbh->conn, stmt, imp_sth->numphs,
                                imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0
                                );
             imp_dbh->result_clearable = DBDPG_FALSE;
         }
-
-        Safefree(statement);
-
     }
     else if (PQTYPE_PREPARED == pqtype) { /* PQexecPrepared or PQsendQueryPrepared */
     
@@ -4298,6 +4300,7 @@ void dbd_st_destroy (SV * sth, imp_sth_t * imp_sth)
     }
 
     Safefree(imp_sth->prepare_name);
+    Safefree(imp_sth->statement);
     Safefree(imp_sth->type_info);
     Safefree(imp_sth->firstword);
     Safefree(imp_sth->PQvals);

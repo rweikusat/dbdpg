@@ -115,6 +115,7 @@ struct imp_sth_st {
     int         * PQfmts;    /* List of formats to pass to PQ* */
     Oid         * PQoids;    /* List of types to pass to PQ* */
     char   *prepare_name;    /* name of the prepared query; NULL if not prepared */
+    char   *statement;
     char   *firstword;       /* first word of the statement */
 
     PGresult  *result;       /* result structure from the executed query */
