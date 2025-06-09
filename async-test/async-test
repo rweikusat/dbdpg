@@ -71,7 +71,7 @@ sub make_cspec
 sub dbh_connect
 {
     my $acct = $_[0];
-    my ($cs, $fd, $dbh, $rc);
+    my ($cs, $dbh, $rc);
     
     msg('connecting');
 
@@ -83,12 +83,11 @@ sub dbh_connect
                                 pg_server_prepare => 1,
                                 pg_async_connect => 1});
     $dbh->{ReadOnly} = 1;
-    $fd = $$dbh{pg_socket};
 
     do {
         $rc = $dbh->pg_continue_connect();
         msg('continue async connect %d', $rc);
-        wait_for($fd, $rc) if $rc;
+        wait_for($$dbh{pg_socket}, $rc) if $rc;
     } while $rc;
 
     msg('connected');
