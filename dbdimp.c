@@ -3412,22 +3412,29 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     /* If not autocommit, start a new transaction */
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        status = _result(aTHX_ imp_dbh, "begin");
-        if (PGRES_COMMAND_OK != status) {
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: begin failed)\n", THEADER_slow);
-            return -2;
-        }
-        imp_dbh->done_begin = DBDPG_TRUE;
-        /* If read-only mode, make it so */
-        if (imp_dbh->txn_read_only) {
-            status = _result(aTHX_ imp_dbh, "set transaction read only");
+        if (imp_sth->async_flag & PG_ASYNC) {
+            if (imp_dbh->txn_read_only)
+                imp_dbh->prep_stack[imp_dbh->prep_top++] = "set transaction read only";
+
+            imp_dbh->prep_stack[imp_dbh->prep_top++] = "begin";
+        } else {
+            status = _result(aTHX_ imp_dbh, "begin");
             if (PGRES_COMMAND_OK != status) {
                 TRACE_PQERRORMESSAGE;
                 pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: set transaction read only failed)\n", THEADER_slow);
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: begin failed)\n", THEADER_slow);
                 return -2;
+            }
+            imp_dbh->done_begin = DBDPG_TRUE;
+            /* If read-only mode, make it so */
+            if (imp_dbh->txn_read_only) {
+                status = _result(aTHX_ imp_dbh, "set transaction read only");
+                if (PGRES_COMMAND_OK != status) {
+                    TRACE_PQERRORMESSAGE;
+                    pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
+                    if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: set transaction read only failed)\n", THEADER_slow);
+                    return -2;
+                }
             }
         }
     }
