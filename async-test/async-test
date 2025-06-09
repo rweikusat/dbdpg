@@ -78,6 +78,7 @@ sub dbh_connect
     $cs = make_cspec($acct);
     $dbh = DBI->connect($cs, '', '',
                                {
+                                AutoCommit => 0,
                                 RaiseError => 1,
                                 pg_server_prepare => 1,
                                 pg_async_connect => 1});
