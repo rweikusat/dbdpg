@@ -5664,6 +5664,40 @@ static int send_prep(imp_dbh_t *imp_dbh)
     return ret ? PGRES_COMMAND_OK : PGRES_FATAL_ERROR;
 }
 
+static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
+{
+    dTHX;
+    char *pg_call;
+    int ret;
+
+    imp_sth->async_status = STH_ASYNC;
+
+    if (imp_sth->prepare_name) {
+        pg_call = "PQsendQueryPrepared";
+
+        TRACE_PQSENDQUERYPREPARED;
+        ret = PQsendQueryPrepared(imp_dbh->conn,
+                                  imp_sth->prepare_name, imp_sth->numphs,
+                                  imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
+                                  0);
+    } else if (imp_sth->numphs) {
+        pg_call = "PQsendQueryParams";
+
+        TRACE_PQSENDQUERYPARAMS;
+        ret = PQsendQueryParams(imp_dbh->conn,
+                                imp_sth->statement, imp_sth->numphs, imp_sth->PQoids,
+                                imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
+                                0);
+    } else {
+        pg_call = "PQsendQuery";
+
+        TRACE_PQSENDQUERY;
+        ret = PQsendQuery(imp_dbh->conn, imp_sth->statement);
+    }
+
+    return ret ? NULL : pg_call;
+}
+
 int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 {
     struct imp_sth_st *imp_sth;
@@ -5696,32 +5730,34 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (!PQconsumeInput(imp_dbh->conn))
         return pg_db_ready_error(h, imp_dbh, imp_sth, "PQconsumeInput");
 
-
     busy = 0;
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
-        busy = 1;
+        char *pg_call;
 
         imp_sth = imp_dbh->async_sth;
         if (imp_sth) {
             switch (imp_sth->async_status) {
             case STH_ASYNC_PREPPING:
+                pg_call = "PQsendQuery";
                 status = handle_async_result(imp_dbh);
 
-                if (PGRES_COMMAND_OK == status && imp_dbh->prep_top) {
-                    status = send_prep(imp_dbh);
-                    busy = 1;
-                } else
-                    imp_sth->async_status = STH_NO_ASYNC;
+                if (PGRES_COMMAND_OK == status)
+                    if (imp_dbh->prep_top) 
+                        status = send_prep(imp_dbh);
+                    else {
+                        pg_call = send_query(imp_dbh, imp_sth);
+                        if (pg_call) status = PGRES_FATAL_ERROR;
+                    }
 
                 if (PGRES_COMMAND_OK != status) 
-                    return pg_db_ready_error(h, imp_dbh, imp_sth, "PQsendQuery");
+                    return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
 
+                busy = 1;
                 break;
 
             case STH_ASYNC_PREPARE:
-                char *pg_call = "PQsendPrepare";
-
+                pg_call = "PQsendPrepare";
                 status = handle_async_result(imp_dbh);
 
                 if (PGRES_COMMAND_OK == status) {
@@ -5733,47 +5769,18 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
                         pg_call = "PQsendQuery";
                         status = send_prep(imp_dbh);
-
-                        busy = 1;
-                    } else
-                        imp_dbh->async_status = STH_NO_ASYNC;
-                }
-
-                if (PGRES_COMMAND_OK != status) {
-                    Safefree(imp_sth->prepare_name);
-                    return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
-                }
-            }
-
-            if (STH_NO_ASYNC == imp_sth->async_status){
-                char *pg_call;
-
-                imp_sth->async_status = STH_ASYNC;
-
-                if (imp_sth->prepare_name) {
-                    pg_call = "PQsendQueryPrepared";
-
-                    TRACE_PQSENDQUERYPREPARED;
-                    ret = PQsendQueryPrepared(imp_dbh->conn,
-                                              imp_sth->prepare_name, imp_sth->numphs,
-                                              imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
-                                              0);
-                } else if (imp_sth->numphs) {
-                    pg_call = "PQsendQueryParams";
-
-                    TRACE_PQSENDQUERYPARAMS;
-                    ret = PQsendQueryParams(imp_dbh->conn,
-                                            imp_sth->statement, imp_sth->numphs, imp_sth->PQoids,
-                                            imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
-                                            0);
+                    } else {
+                        pg_call = send_query(imp_dbh, imp_sth);
+                        if (pg_call) status = PGRES_FATAL_ERROR;
+                    }
                 } else {
-                    pg_call = "PQsendQuery";
-
-                    TRACE_PQSENDQUERY;
-                    ret = PQsendQuery(imp_dbh->conn, imp_sth->statement);
+                    Safefree(imp_sth->prepare_name);
+                    imp_sth->prepare_name = NULL;
                 }
 
-                if (!ret) return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
+                if (PGRES_COMMAND_OK != status)
+                    return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
+
                 busy = 1;
             }
         }
