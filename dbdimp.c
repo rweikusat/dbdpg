@@ -5669,7 +5669,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     struct imp_sth_st *imp_sth;
     char const *pg_func, *stmt;
     PGresult *result;
-    int ret, status;
+    int busy, ret, status;
     dTHX;
 
     imp_sth = imp_dbh->async_sth;
@@ -5697,10 +5697,10 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         return pg_db_ready_error(h, imp_dbh, imp_sth, "PQconsumeInput");
 
 
-    ret = 0;
+    busy = 0;
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
-        ret = 1;
+        busy = 1;
 
         imp_sth = imp_dbh->async_sth;
         if (imp_sth) {
@@ -5710,7 +5710,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
                 if (PGRES_COMMAND_OK == status && imp_dbh->prep_top) {
                     status = send_prep(imp_dbh);
-                    ret = 0;
+                    busy = 1;
                 } else
                     imp_sth->async_status = STH_NO_ASYNC;
 
@@ -5734,7 +5734,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
                         pg_call = "PQsendQuery";
                         status = send_prep(imp_dbh);
 
-                        ret = 0;
+                        busy = 1;
                     } else
                         imp_dbh->async_status = STH_NO_ASYNC;
                 }
@@ -5774,13 +5774,13 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
                 }
 
                 if (!ret) return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
-                ret = 0;
+                busy = 1;
             }
         }
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready\n", THEADER_slow);
-    return ret;
+    return !busy;
 } /* end of pg_db_ready */
 
 
