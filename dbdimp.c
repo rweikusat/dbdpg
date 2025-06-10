@@ -5604,16 +5604,6 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         return -1;
     }
 
-    TRACE_PQCONSUMEINPUT;
-    if (!PQconsumeInput(imp_dbh->conn)) {
-        _fatal_sqlstate(aTHX_ imp_dbh);
-        
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: consume failed)\n", THEADER_slow);
-        return -2;
-    }
-
     strcpy(imp_dbh->sqlstate, "00000");
 
     TRACE_PQCONSUMEINPUT;
