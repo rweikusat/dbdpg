@@ -42,7 +42,7 @@ State
 -----
 Both asynchronous queries started via ->do without parameters
 (pg_quickexec) and started via a statment handle (dbd_st_execute) will
-run the necessary preparatory command asynchronously as well if the
+run the necessary preparatory commands asynchronously as well if the
 full protocol for running queries asychronously is followed (call
 ->pg_ready until it returns true and then, pg->result).
 
