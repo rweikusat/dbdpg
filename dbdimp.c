@@ -5704,8 +5704,6 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     int busy, status;
     dTHX;
 
-    imp_sth = imp_dbh->async_sth;
-
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_ready (async status: %d)\n",
                          THEADER_slow, imp_dbh->async_status);
 
