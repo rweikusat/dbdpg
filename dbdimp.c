@@ -5640,7 +5640,7 @@ static int handle_between_result(imp_dbh_t *imp_dbh)
     TRACE_PQGETRESULT;
     while ((result = PQgetResult(imp_dbh->conn))) {
         ret = _sqlstate(aTHX_ imp_dbh, result);
-        if (PGRES_COMMANS_OK != ret) status = ret;
+        if (PGRES_COMMAND_OK != ret) status = ret;
 
         PQclear(result);
     }
@@ -5664,6 +5664,13 @@ static int send_prep(imp_dbh_t *imp_dbh)
     return ret ? PGRES_COMMAND_OK : PGRES_FATAL_ERROR;
 }
 
+static int pqtype_from_sth(imp_sth_t *imp_sth)
+{
+    if (imp_sth->prepare_name) return PQTYPE_PREPARED;
+    if (imp_sth->numphs) return PQTYPE_PARAMS;
+    return PQTYPE_EXEC;
+}
+
 static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
 {
     dTHX;
@@ -5672,7 +5679,8 @@ static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
 
     imp_sth->async_status = STH_ASYNC;
 
-    if (imp_sth->prepare_name) {
+    switch (pqtype_from_sth(imp_sth)) {
+    case PQTYPE_PREPARED:
         pg_call = "PQsendQueryPrepared";
 
         TRACE_PQSENDQUERYPREPARED;
@@ -5680,7 +5688,9 @@ static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
                                   imp_sth->prepare_name, imp_sth->numphs,
                                   imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
                                   0);
-    } else if (imp_sth->numphs) {
+        break;
+
+    case PQTYPE_PARAMS:
         pg_call = "PQsendQueryParams";
 
         TRACE_PQSENDQUERYPARAMS;
@@ -5688,7 +5698,9 @@ static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
                                 imp_sth->statement, imp_sth->numphs, imp_sth->PQoids,
                                 imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
                                 0);
-    } else {
+        break;
+
+    case PQTYPE_EXEC:
         pg_call = "PQsendQuery";
 
         TRACE_PQSENDQUERY;
