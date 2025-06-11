@@ -5700,9 +5700,8 @@ static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
 int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 {
     struct imp_sth_st *imp_sth;
-    char const *pg_func, *stmt;
-    PGresult *result;
-    int busy, ret, status;
+    char *pg_call;
+    int busy, status;
     dTHX;
 
     imp_sth = imp_dbh->async_sth;
@@ -5732,8 +5731,6 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     busy = 1;
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
-        char *pg_call;
-
         busy = 0;
 
         imp_sth = imp_dbh->async_sth;
