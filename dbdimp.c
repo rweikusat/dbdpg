@@ -5742,10 +5742,12 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (!PQconsumeInput(imp_dbh->conn))
         return pg_db_ready_error(h, imp_dbh, imp_sth, "PQconsumeInput");
 
-    busy = 0;
+    busy = 1;
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
         char *pg_call;
+
+        busy = 0;
 
         imp_sth = imp_dbh->async_sth;
         if (imp_sth) {
