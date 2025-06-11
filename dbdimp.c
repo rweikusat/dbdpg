@@ -3235,7 +3235,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
             Newxz(sth, 1, imp_sth_t);
             sth->async_flag = 8;
             sth->async_status = STH_ASYNC_PREPPING;
-            sth->statement = strdup(sql);
+            sth->statement = savepv(sql);
 
             imp_dbh->async_sth = sth;
         } else {
