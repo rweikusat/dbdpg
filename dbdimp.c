@@ -3231,7 +3231,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with do()\n", THEADER_slow);
         if (imp_dbh->prep_top) {
             send_prep(imp_dbh);
-            
+
             Newxz(sth, 1, imp_sth_t);
             sth->async_flag = 8;
             sth->async_status = STH_ASYNC_PREPPING;
