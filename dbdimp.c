@@ -99,6 +99,8 @@ static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int asyncflag);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
+static int send_prep(imp_dbh_t *imp_dbh);
+
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
 {
@@ -3612,14 +3614,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (imp_sth->async_flag & PG_ASYNC) {
             if (imp_dbh->prep_top) {
                 imp_sth->async_status = STH_ASYNC_PREPPING;
-                stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
-
-                if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep statement '%s'\n",
-                                     THEADER_slow, stmt);
+                ret = send_prep(imp_dbh);
+            } else {
+                TRACE_PQSENDQUERY;
+                ret = PQsendQuery(imp_dbh->conn, stmt);
             }
-
-            TRACE_PQSENDQUERY;
-            ret = PQsendQuery(imp_dbh->conn, stmt);
         }
         else {
 
@@ -3717,13 +3716,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (imp_sth->async_flag & PG_ASYNC) {
             if (imp_dbh->prep_top) {
                 imp_sth->async_status = STH_ASYNC_PREPPING;
-
-                stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
-                if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep statement '%s'\n",
-                                     THEADER_slow, stmt);
-
-                TRACE_PQSENDQUERY;
-                ret = PQsendQuery(imp_dbh->conn, stmt);
+                ret = send_prep(imp_dbh);
             } else {
                 TRACE_PQSENDQUERYPARAMS;
                 ret = PQsendQueryParams
@@ -3810,13 +3803,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             if (imp_sth->async_flag & PG_ASYNC) {
                 if (imp_dbh->prep_top) {
                     imp_sth->async_status = STH_ASYNC_PREPPING;
-
-                    stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
-                    if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep statement '%s'\n",
-                                         THEADER_slow, stmt);
-
-                    TRACE_PQSENDQUERY;
-                    ret = PQsendQuery(imp_dbh->conn, stmt);
+                    ret = send_prep(imp_dbh);
                 } else {
                     TRACE_PQSENDQUERYPREPARED;
                     ret = PQsendQueryPrepared
