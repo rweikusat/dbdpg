@@ -5630,7 +5630,7 @@ static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, imp_sth_t *imp_sth,
     return -2;
 }
 
-static int handle_async_result(imp_dbh_t *imp_dbh)
+static int handle_between_result(imp_dbh_t *imp_dbh)
 {
     PGresult *result;
     int ret, status;
@@ -5640,7 +5640,7 @@ static int handle_async_result(imp_dbh_t *imp_dbh)
     TRACE_PQGETRESULT;
     while ((result = PQgetResult(imp_dbh->conn))) {
         ret = _sqlstate(aTHX_ imp_dbh, result);
-        if (ret != PGRES_COMMAND_OK) status = ret;
+        if (PGRES_COMMANS_OK != ret) status = ret;
 
         PQclear(result);
     }
@@ -5740,7 +5740,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
             switch (imp_sth->async_status) {
             case STH_ASYNC_PREPPING:
                 pg_call = "PQsendQuery";
-                status = handle_async_result(imp_dbh);
+                status = handle_between_result(imp_dbh);
 
                 if (PGRES_COMMAND_OK == status)
                     if (imp_dbh->prep_top) 
@@ -5758,7 +5758,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
             case STH_ASYNC_PREPARE:
                 pg_call = "PQsendPrepare";
-                status = handle_async_result(imp_dbh);
+                status = handle_between_result(imp_dbh);
 
                 if (PGRES_COMMAND_OK == status) {
                     imp_sth->prepared_by_us = DBDPG_TRUE;
