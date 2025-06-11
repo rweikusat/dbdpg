@@ -28,3 +28,26 @@ principal author of most of the code (<greg@turnstep.com>).
 
 async-autotrans: Make automatically started transactions when AutoCommit is off
                  work asynchronously.
+
+Problem
+-------
+When not in AutoCommit mode, the driver automatically starts a
+transaction when this hasn't been done already. This requires
+executing either one or two SQL statements which is done via PQexec,
+ie, synchronously. That's obviously not what should be done when the
+query itself is supposed to run asynchronously.
+
+
+State
+-----
+Both asynchronous queries started via ->do without parameters
+(pg_quickexec) and started via a statment handle (dbd_st_execute) will
+run the necessary preparatory command asynchronously as well if the
+full protocol for running queries asychronously is followed (call
+->pg_ready until it returns true and then, pg->result).
+
+THe OLDQUERY_WAIT path of handle_old_async doesn't know anything about
+these preparatory queries yet. Further, when handle_old_async is
+invoked for a query started via pg_quickexec, it'll leak an imp_sth_t
+structure and the memory used to store the command until the
+preparatory statements have been executed (imp_sth->statement).
