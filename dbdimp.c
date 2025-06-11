@@ -3151,6 +3151,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     PGTransactionStatusType txn_status;
     char *                  cmdStatus = NULL;
     long                    rows = 0;
+    imp_sth_t *             sth;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_quickexec (query: %s async: %d async_status: %d)\n",
             THEADER_slow, sql, asyncflag, imp_dbh->async_status);
@@ -3192,22 +3193,30 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
 
     /* If not autocommit, start a new transaction */
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        status = _result(aTHX_ imp_dbh, "begin");
-        if (PGRES_COMMAND_OK != status) {
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: begin failed)\n", THEADER_slow);
-            return -2;
-        }
-        imp_dbh->done_begin = DBDPG_TRUE;
-        /* If read-only mode, make it so */
-        if (imp_dbh->txn_read_only) {
-            status = _result(aTHX_ imp_dbh, "set transaction read only");
+        if (asyncflag & PG_ASYNC) {
+            if (imp_dbh->txn_read_only)
+                imp_dbh->prep_stack[imp_dbh->prep_top++] = "set transaction read only";
+
+            imp_dbh->prep_stack[imp_dbh->prep_top++] = "begin";
+            imp_dbh->done_begin = DBDPG_TRUE;
+        } else {
+            status = _result(aTHX_ imp_dbh, "begin");
             if (PGRES_COMMAND_OK != status) {
                 TRACE_PQERRORMESSAGE;
                 pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: set transaction read only failed)\n", THEADER_slow);
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: begin failed)\n", THEADER_slow);
                 return -2;
+            }
+            imp_dbh->done_begin = DBDPG_TRUE;
+            /* If read-only mode, make it so */
+            if (imp_dbh->txn_read_only) {
+                status = _result(aTHX_ imp_dbh, "set transaction read only");
+                if (PGRES_COMMAND_OK != status) {
+                    TRACE_PQERRORMESSAGE;
+                    pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
+                    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: set transaction read only failed)\n", THEADER_slow);
+                    return -2;
+                }
             }
         }
     }
@@ -3220,18 +3229,29 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     /* Asynchronous commands get kicked off and return undef */
     if (asyncflag & PG_ASYNC) {
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with do()\n", THEADER_slow);
-        TRACE_PQSENDQUERY;
-        if (! PQsendQuery(imp_dbh->conn, sql)) {
-            if (TRACE4_slow) TRC(DBILOGFP, "%sPQsendQuery failed\n", THEADER_slow);
-            _fatal_sqlstate(aTHX_ imp_dbh);
+        if (imp_dbh->prep_top) {
+            send_prep(imp_dbh);
+            
+            Newxz(sth, 1, imp_sth_t);
+            sth->async_flag = 8;
+            sth->async_status = STH_ASYNC_PREPPING;
+            sth->statement = strdup(sql);
 
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: async do failed)\n", THEADER_slow);
-            return -2;
+            imp_dbh->async_sth = sth;
+        } else {
+            TRACE_PQSENDQUERY;
+            if (! PQsendQuery(imp_dbh->conn, sql)) {
+                if (TRACE4_slow) TRC(DBILOGFP, "%sPQsendQuery failed\n", THEADER_slow);
+                _fatal_sqlstate(aTHX_ imp_dbh);
+
+                TRACE_PQERRORMESSAGE;
+                pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: async do failed)\n", THEADER_slow);
+                return -2;
+            }
         }
+        
         imp_dbh->async_status = DBH_ASYNC;
-        imp_dbh->async_sth = NULL; /* Needed? */
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async)\n", THEADER_slow);
         return 0;
@@ -5778,6 +5798,15 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
                     return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
 
                 busy = 1;
+            }
+
+            if (STH_ASYNC == imp_sth->async_status && 8 == imp_sth->async_flag){
+                if (TRACE5_slow) TRC(DBILOGFP, "%sfreeing quickexec temp sth\n", THEADER_slow);
+
+                Safefree(imp_sth->statement);
+                Safefree(imp_sth);
+
+                imp_dbh->async_sth = NULL;
             }
         }
     }
