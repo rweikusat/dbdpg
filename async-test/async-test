@@ -101,6 +101,7 @@ sub print_pages
     my ($fmt, @pgs, $cmd_max, $row);
 
     print("Section $sect manpages\n");
+    return unless $sth;
 
     while ($row = $sth->fetchrow_arrayref()) {
         push(@pgs, [@$row]);
@@ -120,10 +121,11 @@ sub print_pages
     
     DBI->trace(15);
     $dbh = dbh_connect('../../pg-conn');
-    $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1 });
+#    $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1 });
 
     for (SECS) {
-        $sth->execute($_);
+#        $sth->execute($_);
+        $dbh->do("select cmd, whatis from whatis where section = '$_' order by cmd", { pg_async => 1 });
         wait_for_query($dbh);
 
         print_pages($_, $sth);
