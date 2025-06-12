@@ -271,7 +271,6 @@ is ($@, q{}, $t);
 
 $t=q{Method do() fails when previous execute async has not been cleared};
 $sth->execute();
-$sth->finish(); ## Ideally, this would clear out the async, but it cannot at the moment
 eval {
     $dbh->do('SELECT 345');
 };
