@@ -231,7 +231,7 @@ SKIP: {
     eval {
         $res = $sth->execute();
     };
-    like ($@, qr{previous async}, $t);
+    like ($@, qr{wait for async}, $t);
 
     $t = q{Running execute after async do() works when told to cancel};
     $sth = $dbh->prepare('SELECT 678', {pg_async => PG_OLDQUERY_CANCEL});
