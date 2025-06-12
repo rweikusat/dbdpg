@@ -206,7 +206,7 @@ SKIP: {
     eval {
         $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
     };
-    like ($@, qr{previous async}, $t);
+    like ($@, qr{wait for async}, $t);
 
     $t=q{Database method pg_cancel() works while async query is running};
     eval {
