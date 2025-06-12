@@ -4151,13 +4151,6 @@ int dbd_st_finish (SV * sth, imp_sth_t * imp_sth)
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbdpg_finish (async: %d)\n",
                     THEADER_slow, imp_dbh->async_status);
     
-    /* Are we in the middle of an async for this statement handle? */
-    if (imp_dbh->async_status)
-        pg_db_result(sth, imp_dbh);
-
-    imp_sth->async_status = STH_NO_ASYNC;
-    imp_dbh->async_sth = NULL;
-
     DBIc_ACTIVE_off(imp_sth);
     if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_finish\n", THEADER_slow);
     return 1;
