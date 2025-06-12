@@ -138,7 +138,7 @@ $t=q{Method do() fails when async query has not been cleared};
 eval {
     $dbh->do(q{SELECT 'async_blocks'});
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $t=q{Database method pg_result works as expected};
 eval {
