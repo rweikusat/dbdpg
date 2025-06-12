@@ -3959,7 +3959,7 @@ AV * dbd_st_fetch (SV * sth, imp_sth_t * imp_sth)
 
     /* Check that execute() was executed successfully */
     if ( !DBIc_ACTIVE(imp_sth) ) {
-        pg_error(aTHX_ sth, PGRES_NONFATAL_ERROR, "no statement executing\n");    
+        pg_error(aTHX_ sth, PGRES_NONFATAL_ERROR, "statement not active\n");    
         if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_fetch (error: no statement)\n", THEADER_slow);
         return Nullav;
     }
