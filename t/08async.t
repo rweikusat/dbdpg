@@ -274,7 +274,7 @@ $sth->execute();
 eval {
     $dbh->do('SELECT 345');
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $dbh->pg_result();
 
