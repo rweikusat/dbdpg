@@ -121,11 +121,11 @@ sub print_pages
     
     DBI->trace(15);
     $dbh = dbh_connect('../../pg-conn');
-#    $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1 });
+    $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1 });
 
     for (SECS) {
-#        $sth->execute($_);
-        $dbh->do("select cmd, whatis from whatis where section = '$_' order by cmd", { pg_async => 1 });
+        $sth->execute($_);
+#        $dbh->do("select cmd, whatis from whatis where section = '$_' order by cmd", { pg_async => 1 });
         wait_for_query($dbh);
 
         print_pages($_, $sth);
