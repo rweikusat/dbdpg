@@ -268,6 +268,7 @@ eval {
     $res = $sth->pg_cancel();
 };
 is ($@, q{}, $t);
+$dbh->pg_result();
 
 $t=q{Method do() fails when previous execute async has not been cleared};
 $sth->execute();
