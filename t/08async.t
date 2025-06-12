@@ -306,17 +306,16 @@ is ($@, q{}, $t);
 $t=q{Method fetchall_arrayref returns correct result after pg_result};
 is_deeply ($res, [[123]], $t);
 
-$dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
-my $sth2 = $dbh->prepare('INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456', {pg_async => PG_ASYNC});
 $sth->execute();
-
-$t=q{Fetch on cancelled statement handle fails};
+$t=q{Fetch on non-active statement handle fails};
 eval {
     $sth->fetch();
 };
-like ($@, qr{no statement executing}, $t);
+like ($@, qr{statement not active}, $t);
 
-$t=q{Method execute works after async + cancel prepare};
+$dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
+my $sth2 = $dbh->prepare('INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456', {pg_async => PG_ASYNC});
+$t=q{Method execute works after async prepare};
 eval {
     $sth2->execute();
 };
