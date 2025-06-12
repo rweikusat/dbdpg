@@ -227,14 +227,13 @@ SKIP: {
     $sth = $dbh->prepare('SELECT 567');
 
     $t = q{Running execute after async do() gives an error};
-    $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
+    $dbh->do('SELECT pg_sleep(10)', {pg_async => PG_ASYNC});
     eval {
         $res = $sth->execute();
     };
     like ($@, qr{wait for async}, $t);
 
     $t=q{Database method pg_result returns 0 after query was cancelled};
-    $dbh->do('select pg_sleep(10)', {pg_async => PG_ASYNC});
     $dbh->pg_cancel();
     $res = $dbh->pg_result();
     is(0+$res, 0, $t);
