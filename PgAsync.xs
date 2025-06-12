@@ -220,8 +220,6 @@ constant(name=Nullch)
     PG_XMLARRAY                       = 143
 
     PG_ASYNC                          = 1
-    PG_OLDQUERY_CANCEL                = 2
-    PG_OLDQUERY_WAIT                  = 4
 
     CODE:
         if (0==ix) {
