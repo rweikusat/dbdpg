@@ -254,13 +254,13 @@ $t=q{Method do() fails when previous async prepare has been executed};
 eval {
     $dbh->do('SELECT 123');
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $t=q{Method execute() fails when previous async prepare has been executed};
 eval {
     $sth->execute();
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $t=q{Database method pg_cancel works if async query has already finished};
 sleep 0.5;
