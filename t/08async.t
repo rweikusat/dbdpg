@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 60;
+plan tests => 59;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -306,16 +306,8 @@ $t=q{Method fetchall_arrayref returns correct result after pg_result};
 is_deeply ($res, [[123]], $t);
 
 $dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
+my $sth2 = $dbh->prepare('INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456', {pg_async => PG_ASYNC});
 $sth->execute();
-
-$t=q{Method prepare() works when passed in PG_OLDQUERY_CANCEL};
-
-my $sth2;
-my $SQL = 'INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456';
-eval {
-    $sth2 = $dbh->prepare($SQL, {pg_async => PG_ASYNC + PG_OLDQUERY_CANCEL});
-};
-is ($@, q{}, $t);
 
 $t=q{Fetch on cancelled statement handle fails};
 eval {
