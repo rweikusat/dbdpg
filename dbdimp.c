@@ -3348,6 +3348,12 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
 
 /* ================================================================== */
 /* Return value <= -2:error, >=0:ok row count, (-1=unknown count) */
+static char *pq_x_calls[][2] = {
+    [PQTYPE_EXEC] =		{ "PQexec",		"PQsendQuery" },
+    [PQTYPE_PARAMS] =		{ "PQexecParams",	"PQsendQueryParams" },
+    [PQTYPE_PREPARED] =		{ "PQexecPrepared",	"PQsendQueryPrepared" }
+};
+
 long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 {
     dTHX;
@@ -3491,6 +3497,10 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     else {
         pqtype = PQTYPE_PREPARED;
     }
+    
+    if (TRACE4_slow) TRC(DBILOGFP, "%sWill use %s\n", 
+                         THEADER_slow,
+                         pq_x_calls[pqtype][(imp_sth->async_flag & PG_ASYNC) != 0]);
 
     /* We use the new server_side prepare style if:
        1. The statement is DML (DDL is not preparable)
@@ -3569,11 +3579,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     /* Run one of PQexec (or PQsendQuery), PQexecParams (or PQsendQueryParams), PQexecPrepared (or PQsendQueryPrepared) */
 
     if (PQTYPE_EXEC == pqtype) { /* PQexec or PQsendQuery */
-
-        if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec");
-
         Safefree(imp_sth->statement);
 
         /* Go through and quote each value, then turn into a giant statement */
@@ -3593,10 +3598,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         }
         stmt[execsize] = '\0';
 
-        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", 
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec",
-                             stmt);
+        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow, stmt);
             
         if (TSQL)
             TRC(DBILOGFP, "%s;\n\n", stmt);
@@ -3634,11 +3636,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         }
     }
     else if (PQTYPE_PARAMS == pqtype) { /* PQexecParams or PQsendQueryParams */
-
-        if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams");
-
         if (!imp_sth->statement) {
             /* Figure out how big the statement plus placeholders will be */
             for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
@@ -3695,10 +3692,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             TRC(DBILOGFP, ");\n\n");
         }
 
-        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams",
-                             stmt);
+        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow, stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
             if (!imp_dbh->prep_top) {
@@ -3738,11 +3732,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         }
     }
     else if (PQTYPE_PREPARED == pqtype) { /* PQexecPrepared or PQsendQueryPrepared */
-    
-        if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared");
-
         /* Prepare if it has not already been prepared (or it needs repreparing) */
         if (NULL == imp_sth->prepare_name) {
             if (imp_sth->prepared_by_us) {
@@ -3772,8 +3761,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 }
             }
         
-            if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", THEADER_slow,
-                                 imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared",
+            if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow,
                                  imp_sth->prepare_name);
 
             if (TSQL) {
