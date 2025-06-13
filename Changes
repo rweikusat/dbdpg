@@ -1,5 +1,10 @@
 Changes for the DBD::PgAsync module
 
+--- 06/13/2025 rweikusat@talktalk.net ---
+
+  - run transaction start commands for AutoCommit off
+    asynchronously via 'prep stack'
+
 --- 06/03/2025 rweikusat@talktalk.net ---
 
  - asynchronous connect
