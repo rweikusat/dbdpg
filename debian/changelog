@@ -1,3 +1,10 @@
+libdbd-pg-async-perl (0.2) unstable; urgency=medium
+
+  * start transactions asychronously when AutoCommit is off 
+  * removed handle_old_async
+
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Fri, 13 Jun 2025 19:39:20 +0100
+
 libdbd-pg-async-perl (0.1) unstable; urgency=medium
 
   * asynchronous connect
