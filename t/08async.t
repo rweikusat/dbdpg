@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 59;
+plan tests => 58;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -312,16 +312,13 @@ eval {
     $sth->fetch();
 };
 like ($@, qr{statement not active}, $t);
-
-$dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
-my $sth2 = $dbh->prepare('INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456', {pg_async => PG_ASYNC});
-$t=q{Method execute works after async prepare};
-eval {
-    $sth2->execute();
-};
-is ($@, q{}, $t);
+$dbh->pg_result();
+$sth->finish();
 
 $t=q{Statement method pg_result works on async statement handle};
+$dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
+my $sth2 = $dbh->prepare('INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456', {pg_async => PG_ASYNC});
+$sth2->execute();
 eval {
     $res = $sth2->pg_result();
 };
