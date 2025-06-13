@@ -30,3 +30,11 @@ sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
+
+async-autotrans-v2:
+
+Deficiency in the existing code for starting automatically started
+transactions asynchronously: Sets imp_dbh->done_begin to true
+regardless of the outcome of the begin command.
+
+This is to be changed by using a different design for this.
