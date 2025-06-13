@@ -343,4 +343,3 @@ $dbh->do('DROP TABLE dbd_pg_test5');
 
 cleanup_database($dbh,'test');
 $dbh->disconnect;
-
