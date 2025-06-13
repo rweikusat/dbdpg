@@ -3611,10 +3611,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             TRC(DBILOGFP, "%s;\n\n", stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
-            if (imp_dbh->prep_top) {
-                imp_sth->async_status = STH_ASYNC_PREPPING;
-                ret = send_prep(imp_dbh);
-            } else {
+            if (!imp_dbh->prep_top) {
                 TRACE_PQSENDQUERY;
                 ret = PQsendQuery(imp_dbh->conn, stmt);
             }
@@ -3713,10 +3710,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                              stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
-            if (imp_dbh->prep_top) {
-                imp_sth->async_status = STH_ASYNC_PREPPING;
-                ret = send_prep(imp_dbh);
-            } else {
+            if (!imp_dbh->prep_top) {
                 TRACE_PQSENDQUERYPARAMS;
                 ret = PQsendQueryParams
                     (imp_dbh->conn, stmt, imp_sth->numphs,
@@ -3800,10 +3794,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             }
 
             if (imp_sth->async_flag & PG_ASYNC) {
-                if (imp_dbh->prep_top) {
-                    imp_sth->async_status = STH_ASYNC_PREPPING;
-                    ret = send_prep(imp_dbh);
-                } else {
+                if (!imp_dbh->prep_top) {
                     TRACE_PQSENDQUERYPREPARED;
                     ret = PQsendQueryPrepared
                         (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
@@ -3845,6 +3836,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     /* If running asynchronously, we don't stick around for the result */
     if (imp_sth->async_flag & PG_ASYNC) {
+        if (imp_dbh->prep_top) {
+            imp_sth->async_status = STH_ASYNC_PREPPING;
+            ret = send_prep(imp_dbh);
+        }
+
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         if (!imp_sth->async_status) imp_sth->async_status = STH_ASYNC;
         imp_dbh->async_sth = imp_sth;
