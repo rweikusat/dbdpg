@@ -4,6 +4,7 @@ Changes for the DBD::PgAsync module
 
   - run transaction start commands for AutoCommit off
     asynchronously via 'prep stack'
+  - removed support for "old async handling"    
 
 --- 06/03/2025 rweikusat@talktalk.net ---
 
