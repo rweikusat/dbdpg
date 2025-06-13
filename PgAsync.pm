@@ -41,11 +41,11 @@ use 5.008001;
 
     our %EXPORT_TAGS =
         (
-         async => [qw($DBDPG_DEFAULT PG_ASYNC PG_OLDQUERY_CANCEL PG_OLDQUERY_WAIT)],
+         async => [qw($DBDPG_DEFAULT PG_ASYNC)],
          pg_limits => [qw($DBDPG_DEFAULT
                        PG_MIN_SMALLINT PG_MAX_SMALLINT PG_MIN_INTEGER PG_MAX_INTEGER PG_MAX_BIGINT PG_MIN_BIGINT
                        PG_MIN_SMALLSERIAL PG_MAX_SMALLSERIAL PG_MIN_SERIAL PG_MAX_SERIAL PG_MIN_BIGSERIAL PG_MAX_BIGSERIAL)],
-         pg_types => [qw($DBDPG_DEFAULT PG_ASYNC PG_OLDQUERY_CANCEL PG_OLDQUERY_WAIT
+         pg_types => [qw($DBDPG_DEFAULT PG_ASYNC
             PG_ACLITEM PG_ACLITEMARRAY PG_ANY PG_ANYARRAY PG_ANYCOMPATIBLE
             PG_ANYCOMPATIBLEARRAY PG_ANYCOMPATIBLEMULTIRANGE PG_ANYCOMPATIBLENONARRAY PG_ANYCOMPATIBLERANGE PG_ANYELEMENT
             PG_ANYENUM PG_ANYMULTIRANGE PG_ANYNONARRAY PG_ANYRANGE PG_BIT
@@ -94,7 +94,7 @@ use 5.008001;
     }
     our $DBDPG_DEFAULT = DBD::PgAsync::DefaultValue->new();
     Exporter::export_ok_tags('pg_types', 'async', 'pg_limits');
-    our @EXPORT = qw($DBDPG_DEFAULT PG_ASYNC PG_OLDQUERY_CANCEL PG_OLDQUERY_WAIT PG_BYTEA);
+    our @EXPORT = qw($DBDPG_DEFAULT PG_ASYNC PG_BYTEA);
     XSLoader::load(__PACKAGE__, $VERSION);
 
     our $err = 0;       # holds error code for DBI::err
@@ -4153,10 +4153,6 @@ sent asynchronously. The basic usage is as follows:
   $sth = $dbh->prepare("SELECT long_running_query(1)", {pg_async => PG_ASYNC});
   $sth->execute();
 
-  ## Changed our mind, cancel and run again:
-  $sth = $dbh->prepare("SELECT 678", {pg_async => PG_ASYNC + PG_OLDQUERY_CANCEL});
-  $sth->execute();
-
   do_something_else();
 
   if (!$sth->pg_ready) {
@@ -4176,17 +4172,6 @@ There are currently three asynchronous constants automatically exported by DBD::
 
 This is a constant for the number 1. It is passed to either the L</do> or the L</prepare> method as a value
 to the pg_async key and indicates that the query should be sent asynchronously.
-
-=item PG_OLDQUERY_CANCEL
-
-This is a constant for the number 2. When passed to either the L</do> or the L</prepare> method, it causes any
-currently running asynchronous query to be cancelled and rolled back. It has no effect if no asynchronous
-query is currently running.
-
-=item PG_OLDQUERY_WAIT
-
-This is a constant for the number 4. When passed to either the L</do> or the L</prepare> method, it waits for any
-currently running asynchronous query to complete. It has no effect if there is no asynchronous query currently running.
 
 =back
 
