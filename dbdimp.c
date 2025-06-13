@@ -3241,7 +3241,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
                 return -2;
             }
         }
-        
+
         imp_dbh->async_status = DBH_ASYNC;
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async)\n", THEADER_slow);
