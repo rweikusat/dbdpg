@@ -80,7 +80,8 @@ enum {
 enum {        
 	STH_NO_ASYNC,
 	STH_ASYNC,
-	STH_ASYNC_PREPARE
+	STH_ASYNC_PREPARE,
+        STH_ASYNC_PREPPING
 };
 
 static void pg_error(pTHX_ SV *h, int error_num, const char *error_msg);
@@ -95,8 +96,9 @@ static int pg_st_prepare_statement (pTHX_ SV *sth, imp_sth_t *imp_sth);
 static int pg_st_deallocate_statement(pTHX_ SV *sth, imp_sth_t *imp_sth);
 static PGTransactionStatusType pg_db_txn_status (pTHX_ imp_dbh_t *imp_dbh);
 static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
-static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int asyncflag);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
+
+static int send_prep(imp_dbh_t *imp_dbh);
 
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
@@ -173,6 +175,7 @@ int dbd_db_login6 (SV * dbh, imp_dbh_t * imp_dbh, char * dbname, char * uid, cha
     int            async_connect;
 
     async_connect = want_async_connect(aTHX_ attr);
+    imp_dbh->prep_top = 0;
 
     if (TSTART_slow) {
         TRC(DBILOGFP, "%sBegin dbd_db_login6\n", THEADER_slow);
@@ -1737,6 +1740,7 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
     imp_sth->async_flag        = 0;
     imp_sth->async_status      = STH_NO_ASYNC;
     imp_sth->prepare_name      = NULL;
+    imp_sth->statement         = NULL;
     imp_sth->firstword         = NULL;
     imp_sth->result            = NULL;
     imp_sth->type_info         = NULL;
@@ -3146,6 +3150,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     PGTransactionStatusType txn_status;
     char *                  cmdStatus = NULL;
     long                    rows = 0;
+    imp_sth_t *             sth;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_quickexec (query: %s async: %d async_status: %d)\n",
             THEADER_slow, sql, asyncflag, imp_dbh->async_status);
@@ -3165,44 +3170,44 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
         }
     }            
 
-    /* If we are still waiting on an async, handle it */
     switch (imp_dbh->async_status) {
     case DBH_NO_ASYNC:
         break;
 
     case DBH_ASYNC_CONNECT:
     case DBH_ASYNC_CONNECT_POLL:
-        if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async rows: %ld)\n", THEADER_slow, rows);
-        return -1;
+        croak("Must wait for async connect to finish before issuing commands");
 
     default:
-        if (TRACE5_slow) TRC(DBILOGFP, "%shandling old async\n", THEADER_slow);
-        rows = handle_old_async(aTHX_ dbh, imp_dbh, asyncflag);
-        if (rows) {
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async rows: %ld)\n", THEADER_slow, rows);
-            return rows;
-        }
+        croak("Must wait for async query to finish before issuing more commands");
     }
 
     /* If not autocommit, start a new transaction */
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        status = _result(aTHX_ imp_dbh, "begin");
-        if (PGRES_COMMAND_OK != status) {
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: begin failed)\n", THEADER_slow);
-            return -2;
-        }
-        imp_dbh->done_begin = DBDPG_TRUE;
-        /* If read-only mode, make it so */
-        if (imp_dbh->txn_read_only) {
-            status = _result(aTHX_ imp_dbh, "set transaction read only");
+        if (asyncflag & PG_ASYNC) {
+            if (imp_dbh->txn_read_only)
+                imp_dbh->prep_stack[imp_dbh->prep_top++] = "set transaction read only";
+
+            imp_dbh->prep_stack[imp_dbh->prep_top++] = "begin";
+            imp_dbh->done_begin = DBDPG_TRUE;
+        } else {
+            status = _result(aTHX_ imp_dbh, "begin");
             if (PGRES_COMMAND_OK != status) {
                 TRACE_PQERRORMESSAGE;
                 pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: set transaction read only failed)\n", THEADER_slow);
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: begin failed)\n", THEADER_slow);
                 return -2;
+            }
+            imp_dbh->done_begin = DBDPG_TRUE;
+            /* If read-only mode, make it so */
+            if (imp_dbh->txn_read_only) {
+                status = _result(aTHX_ imp_dbh, "set transaction read only");
+                if (PGRES_COMMAND_OK != status) {
+                    TRACE_PQERRORMESSAGE;
+                    pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
+                    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: set transaction read only failed)\n", THEADER_slow);
+                    return -2;
+                }
             }
         }
     }
@@ -3215,18 +3220,29 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     /* Asynchronous commands get kicked off and return undef */
     if (asyncflag & PG_ASYNC) {
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with do()\n", THEADER_slow);
-        TRACE_PQSENDQUERY;
-        if (! PQsendQuery(imp_dbh->conn, sql)) {
-            if (TRACE4_slow) TRC(DBILOGFP, "%sPQsendQuery failed\n", THEADER_slow);
-            _fatal_sqlstate(aTHX_ imp_dbh);
+        if (imp_dbh->prep_top) {
+            send_prep(imp_dbh);
 
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: async do failed)\n", THEADER_slow);
-            return -2;
+            Newxz(sth, 1, imp_sth_t);
+            sth->async_flag = 8;
+            sth->async_status = STH_ASYNC_PREPPING;
+            sth->statement = savepv(sql);
+
+            imp_dbh->async_sth = sth;
+        } else {
+            TRACE_PQSENDQUERY;
+            if (! PQsendQuery(imp_dbh->conn, sql)) {
+                if (TRACE4_slow) TRC(DBILOGFP, "%sPQsendQuery failed\n", THEADER_slow);
+                _fatal_sqlstate(aTHX_ imp_dbh);
+
+                TRACE_PQERRORMESSAGE;
+                pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: async do failed)\n", THEADER_slow);
+                return -2;
+            }
         }
+
         imp_dbh->async_status = DBH_ASYNC;
-        imp_dbh->async_sth = NULL; /* Needed? */
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async)\n", THEADER_slow);
         return 0;
@@ -3332,14 +3348,11 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
 
 /* ================================================================== */
 /* Return value <= -2:error, >=0:ok row count, (-1=unknown count) */
-static int pq_send_prepared_query (pTHX_ imp_dbh_t * imp_dbh, imp_sth_t * imp_sth)
-{
-	TRACE_PQSENDQUERYPREPARED;
-	return PQsendQueryPrepared (imp_dbh->conn,
-				    imp_sth->prepare_name, imp_sth->numphs,
-				    imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
-				    0);
-}
+static char *pq_x_calls[][2] = {
+    [PQTYPE_EXEC] =		{ "PQexec",		"PQsendQuery" },
+    [PQTYPE_PARAMS] =		{ "PQexecParams",	"PQsendQueryParams" },
+    [PQTYPE_PREPARED] =		{ "PQexecPrepared",	"PQsendQueryPrepared" }
+};
 
 long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 {
@@ -3350,11 +3363,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     STRLEN        execsize, x;
     unsigned int  placeholder_digits;
     seg_t *       currseg;
-    char *        statement = NULL;
     int           num_fields;
     long          ret = -2;
     PQExecType    pqtype = PQTYPE_UNKNOWN;
     long          power_of_ten;
+    char *        stmt;
     
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_st_execute\n", THEADER_slow);
     
@@ -3385,48 +3398,44 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         imp_sth->all_bound = DBDPG_TRUE;
     }
 
-    /* Check for old async transactions */
     switch (imp_dbh->async_status) {
     case DBH_NO_ASYNC:
         break;
 
     case DBH_ASYNC_CONNECT:
     case DBH_ASYNC_CONNECT_POLL:
-        if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute\n", THEADER_slow);
-        return -2;
-
-    case DBH_ASYNC:
-        if (STH_ASYNC_PREPARE == imp_sth->async_status)
-            break;
+        croak("Must wait for async connect to finish before issuing commands");
 
     default:
-        if (TRACE7_slow) TRC(DBILOGFP, "%sAttempting to handle existing async transaction\n", THEADER_slow);
-        ret = handle_old_async(aTHX_ sth, imp_dbh, imp_sth->async_flag);
-        if (ret) {
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (async ret: %ld)\n", THEADER_slow, ret);
-            return ret;
-        }
+        croak("Must wait for async query to finish before issuing more commands");
     }
 
     /* If not autocommit, start a new transaction */
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        status = _result(aTHX_ imp_dbh, "begin");
-        if (PGRES_COMMAND_OK != status) {
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: begin failed)\n", THEADER_slow);
-            return -2;
-        }
-        imp_dbh->done_begin = DBDPG_TRUE;
-        /* If read-only mode, make it so */
-        if (imp_dbh->txn_read_only) {
-            status = _result(aTHX_ imp_dbh, "set transaction read only");
+        if (imp_sth->async_flag & PG_ASYNC) {
+            if (imp_dbh->txn_read_only)
+                imp_dbh->prep_stack[imp_dbh->prep_top++] = "set transaction read only";
+
+            imp_dbh->prep_stack[imp_dbh->prep_top++] = "begin";
+            imp_dbh->done_begin = DBDPG_TRUE;
+        } else {
+            status = _result(aTHX_ imp_dbh, "begin");
             if (PGRES_COMMAND_OK != status) {
                 TRACE_PQERRORMESSAGE;
                 pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: set transaction read only failed)\n", THEADER_slow);
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: begin failed)\n", THEADER_slow);
                 return -2;
+            }
+            imp_dbh->done_begin = DBDPG_TRUE;
+            /* If read-only mode, make it so */
+            if (imp_dbh->txn_read_only) {
+                status = _result(aTHX_ imp_dbh, "set transaction read only");
+                if (PGRES_COMMAND_OK != status) {
+                    TRACE_PQERRORMESSAGE;
+                    pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
+                    if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: set transaction read only failed)\n", THEADER_slow);
+                    return -2;
+                }
             }
         }
     }
@@ -3488,6 +3497,10 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     else {
         pqtype = PQTYPE_PREPARED;
     }
+    
+    if (TRACE4_slow) TRC(DBILOGFP, "%sWill use %s\n", 
+                         THEADER_slow,
+                         pq_x_calls[pqtype][(imp_sth->async_flag & PG_ASYNC) != 0]);
 
     /* We use the new server_side prepare style if:
        1. The statement is DML (DDL is not preparable)
@@ -3566,10 +3579,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     /* Run one of PQexec (or PQsendQuery), PQexecParams (or PQsendQueryParams), PQexecPrepared (or PQsendQueryPrepared) */
 
     if (PQTYPE_EXEC == pqtype) { /* PQexec or PQsendQuery */
-
-        if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec");
+        Safefree(imp_sth->statement);
 
         /* Go through and quote each value, then turn into a giant statement */
         for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
@@ -3577,27 +3587,27 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 execsize += currseg->ph->quotedlen;
         }
 
-        New(0, statement, execsize+1, char); /* freed below at end of this 'if' block */
-        statement[0] = '\0';
+        New(0, imp_sth->statement, execsize+1, char); /* freed below at end of this 'if' block */
+        stmt = imp_sth->statement;
+        stmt[0] = '\0';
         for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
             if (currseg->segment != NULL)
-                strcat(statement, currseg->segment);
+                strcat(stmt, currseg->segment);
             if (currseg->placeholder!=0)
-                strcat(statement, currseg->ph->quoted);
+                strcat(stmt, currseg->ph->quoted);
         }
-        statement[execsize] = '\0';
+        stmt[execsize] = '\0';
 
-        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", 
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQuery" : "PQexec",
-                             statement);
+        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow, stmt);
             
         if (TSQL)
-            TRC(DBILOGFP, "%s;\n\n", statement);
+            TRC(DBILOGFP, "%s;\n\n", stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
-            TRACE_PQSENDQUERY;
-            ret = PQsendQuery(imp_dbh->conn, statement);
+            if (!imp_dbh->prep_top) {
+                TRACE_PQSENDQUERY;
+                ret = PQsendQuery(imp_dbh->conn, stmt);
+            }
         }
         else {
 
@@ -3621,44 +3631,40 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
             TRACE_PQEXEC;
             imp_dbh->last_result = imp_sth->result
-                = PQexec(imp_dbh->conn, statement);
+                = PQexec(imp_dbh->conn, stmt);
             imp_dbh->result_clearable = DBDPG_FALSE;
         }
-
-        Safefree(statement);
-
     }
     else if (PQTYPE_PARAMS == pqtype) { /* PQexecParams or PQsendQueryParams */
-
-        if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams");
-
-        /* Figure out how big the statement plus placeholders will be */
-        for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
-            if (0==currseg->placeholder)
-                continue;
-            /* The parameter itself: dollar sign plus digit(s) */
-            power_of_ten = 10;
-            for (placeholder_digits=1; placeholder_digits<7; placeholder_digits++, power_of_ten *= 10) {
-                if (currseg->placeholder < power_of_ten)
-                    break;
+        if (!imp_sth->statement) {
+            /* Figure out how big the statement plus placeholders will be */
+            for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
+                if (0==currseg->placeholder)
+                    continue;
+                /* The parameter itself: dollar sign plus digit(s) */
+                power_of_ten = 10;
+                for (placeholder_digits=1; placeholder_digits<7; placeholder_digits++, power_of_ten *= 10) {
+                    if (currseg->placeholder < power_of_ten)
+                        break;
+                }
+                if (placeholder_digits >= 7)
+                    croak("Too many placeholders!");
+                execsize += placeholder_digits+1;
             }
-            if (placeholder_digits >= 7)
-                croak("Too many placeholders!");
-            execsize += placeholder_digits+1;
-        }
 
-        /* Create the statement */
-        New(0, statement, execsize+1, char); /* freed below at end of this 'if' block */
-        statement[0] = '\0';
-        for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
-            if (currseg->segment != NULL)
-                strcat(statement, currseg->segment);
-            if (currseg->placeholder!=0)
-                sprintf(strchr(statement, '\0'), "$%d", currseg->placeholder);
-        }
-        statement[execsize] = '\0';
+            /* Create the statement */
+            New(0, imp_sth->statement, execsize+1, char); /* freed below at end of this 'if' block */
+            stmt = imp_sth->statement;
+            stmt[0] = '\0';
+            for (currseg=imp_sth->seg; NULL != currseg; currseg=currseg->nextseg) {
+                if (currseg->segment != NULL)
+                    strcat(stmt, currseg->segment);
+                if (currseg->placeholder!=0)
+                    sprintf(strchr(stmt, '\0'), "$%d", currseg->placeholder);
+            }
+            stmt[execsize] = '\0';
+        } else
+            stmt = imp_sth->statement;
             
         /* Populate PQoids */
         if (NULL == imp_sth->PQoids) {
@@ -3679,23 +3685,22 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         }
 
         if (TSQL) {
-            TRC(DBILOGFP, "EXECUTE %s (\n", statement);
+            TRC(DBILOGFP, "EXECUTE %s (\n", stmt);
             for (x=0,currph=imp_sth->ph; NULL != currph; currph=currph->nextph,x++) {
                 TRC(DBILOGFP, "$%d: %s\n", (int)x+1, imp_sth->PQvals[x]);
             }
             TRC(DBILOGFP, ");\n\n");
         }
 
-        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryParams" : "PQexecParams",
-                             statement);
+        if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow, stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
-            TRACE_PQSENDQUERYPARAMS;
-            ret = PQsendQueryParams
-                (imp_dbh->conn, statement, imp_sth->numphs,
-                 imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+            if (!imp_dbh->prep_top) {
+                TRACE_PQSENDQUERYPARAMS;
+                ret = PQsendQueryParams
+                    (imp_dbh->conn, stmt, imp_sth->numphs,
+                     imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+            }
         }
         else {
 
@@ -3720,21 +3725,13 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             TRACE_PQEXECPARAMS;
             imp_dbh->last_result = imp_sth->result
                 = PQexecParams(
-                               imp_dbh->conn, statement, imp_sth->numphs,
+                               imp_dbh->conn, stmt, imp_sth->numphs,
                                imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0
                                );
             imp_dbh->result_clearable = DBDPG_FALSE;
         }
-
-        Safefree(statement);
-
     }
     else if (PQTYPE_PREPARED == pqtype) { /* PQexecPrepared or PQsendQueryPrepared */
-    
-        if (TRACE4_slow) TRC(DBILOGFP, "%s%s\n",
-                             THEADER_slow,
-                             imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared");
-
         /* Prepare if it has not already been prepared (or it needs repreparing) */
         if (NULL == imp_sth->prepare_name) {
             if (imp_sth->prepared_by_us) {
@@ -3764,8 +3761,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 }
             }
         
-            if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s with (%s)\n", THEADER_slow,
-                                 imp_sth->async_flag & PG_ASYNC ? "PQsendQueryPrepared" : "PQexecPrepared",
+            if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow,
                                  imp_sth->prepare_name);
 
             if (TSQL) {
@@ -3777,10 +3773,12 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             }
 
             if (imp_sth->async_flag & PG_ASYNC) {
-                TRACE_PQSENDQUERYPREPARED;
-                ret = PQsendQueryPrepared
-                    (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
-                     imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+                if (!imp_dbh->prep_top) {
+                    TRACE_PQSENDQUERYPREPARED;
+                    ret = PQsendQueryPrepared
+                        (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
+                         imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
+                }
             }
             else {
 
@@ -3817,6 +3815,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     /* If running asynchronously, we don't stick around for the result */
     if (imp_sth->async_flag & PG_ASYNC) {
+        if (imp_dbh->prep_top) {
+            imp_sth->async_status = STH_ASYNC_PREPPING;
+            ret = send_prep(imp_dbh);
+        }
+
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         if (!imp_sth->async_status) imp_sth->async_status = STH_ASYNC;
         imp_dbh->async_sth = imp_sth;
@@ -3931,7 +3934,7 @@ AV * dbd_st_fetch (SV * sth, imp_sth_t * imp_sth)
 
     /* Check that execute() was executed successfully */
     if ( !DBIc_ACTIVE(imp_sth) ) {
-        pg_error(aTHX_ sth, PGRES_NONFATAL_ERROR, "no statement executing\n");    
+        pg_error(aTHX_ sth, PGRES_NONFATAL_ERROR, "statement not active\n");    
         if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_fetch (error: no statement)\n", THEADER_slow);
         return Nullav;
     }
@@ -4123,16 +4126,6 @@ int dbd_st_finish (SV * sth, imp_sth_t * imp_sth)
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbdpg_finish (async: %d)\n",
                     THEADER_slow, imp_dbh->async_status);
     
-    /* Are we in the middle of an async for this statement handle? */
-    if (imp_dbh->async_status) {
-        if (imp_sth->async_status) {
-            handle_old_async(aTHX_ sth, imp_dbh, PG_OLDQUERY_WAIT);
-        }
-    }
-
-    imp_sth->async_status = STH_NO_ASYNC;
-    imp_dbh->async_sth = NULL;
-
     DBIc_ACTIVE_off(imp_sth);
     if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_finish\n", THEADER_slow);
     return 1;
@@ -4276,9 +4269,8 @@ void dbd_st_destroy (SV * sth, imp_sth_t * imp_sth)
         return;
     }
 
-    if (imp_dbh->async_status) {
-        handle_old_async(aTHX_ sth, imp_dbh, PG_OLDQUERY_WAIT);
-    }
+    if (imp_dbh->async_status)
+        pg_db_result(sth, imp_dbh);
 
     /* Deallocate only if we named this statement ourselves and we still have a good connection */
     /* On rare occasions, dbd_db_destroy is called first and we can no longer rely on imp_dbh */
@@ -4290,6 +4282,7 @@ void dbd_st_destroy (SV * sth, imp_sth_t * imp_sth)
     }
 
     Safefree(imp_sth->prepare_name);
+    Safefree(imp_sth->statement);
     Safefree(imp_sth->type_info);
     Safefree(imp_sth->firstword);
     Safefree(imp_sth->PQvals);
@@ -5566,12 +5559,19 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
    0 if the query is still running
    -2 for other errors
 */
-static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, char *pq_call)
+static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, imp_sth_t *imp_sth,
+                             char *pq_call)
 {
     dTHX;
 
     if (strcmp(imp_dbh->sqlstate, "00000") != 0)
         _fatal_sqlstate(aTHX_ imp_dbh);
+
+    if (imp_sth) 
+        imp_sth->async_status = STH_NO_ASYNC;
+
+    imp_dbh->async_status = DBH_NO_ASYNC;
+    imp_dbh->async_sth = NULL;
 
     TRACE_PQERRORMESSAGE;
     pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
@@ -5580,12 +5580,91 @@ static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, char *pq_call)
     return -2;
 }
 
+static int handle_between_result(imp_dbh_t *imp_dbh)
+{
+    PGresult *result;
+    int ret, status;
+    dTHX;
+
+    status = PGRES_COMMAND_OK;
+    TRACE_PQGETRESULT;
+    while ((result = PQgetResult(imp_dbh->conn))) {
+        ret = _sqlstate(aTHX_ imp_dbh, result);
+        if (PGRES_COMMAND_OK != ret) status = ret;
+
+        PQclear(result);
+    }
+
+    return status;
+}
+
+static int send_prep(imp_dbh_t *imp_dbh)
+{
+    dTHX;
+    char *stmt;
+    int ret;
+
+    stmt = imp_dbh->prep_stack[--imp_dbh->prep_top];
+
+    if (TRACE5_slow) TRC(DBILOGFP, "%sSending prep statement '%s'\n",
+                         THEADER_slow, stmt);
+
+    TRACE_PQSENDQUERY;
+    ret = PQsendQuery(imp_dbh->conn, stmt);
+    return ret ? PGRES_COMMAND_OK : PGRES_FATAL_ERROR;
+}
+
+static int pqtype_from_sth(imp_sth_t *imp_sth)
+{
+    if (imp_sth->prepare_name) return PQTYPE_PREPARED;
+    if (imp_sth->numphs) return PQTYPE_PARAMS;
+    return PQTYPE_EXEC;
+}
+
+static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
+{
+    dTHX;
+    char *pg_call;
+    int ret;
+
+    imp_sth->async_status = STH_ASYNC;
+
+    switch (pqtype_from_sth(imp_sth)) {
+    case PQTYPE_PREPARED:
+        pg_call = "PQsendQueryPrepared";
+
+        TRACE_PQSENDQUERYPREPARED;
+        ret = PQsendQueryPrepared(imp_dbh->conn,
+                                  imp_sth->prepare_name, imp_sth->numphs,
+                                  imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
+                                  0);
+        break;
+
+    case PQTYPE_PARAMS:
+        pg_call = "PQsendQueryParams";
+
+        TRACE_PQSENDQUERYPARAMS;
+        ret = PQsendQueryParams(imp_dbh->conn,
+                                imp_sth->statement, imp_sth->numphs, imp_sth->PQoids,
+                                imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
+                                0);
+        break;
+
+    case PQTYPE_EXEC:
+        pg_call = "PQsendQuery";
+
+        TRACE_PQSENDQUERY;
+        ret = PQsendQuery(imp_dbh->conn, imp_sth->statement);
+    }
+
+    return ret ? NULL : pg_call;
+}
+
 int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 {
     struct imp_sth_st *imp_sth;
-    char const *pg_func;
-    PGresult *result;
-    int ret, status;
+    char *pg_call;
+    int busy, status;
     dTHX;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_ready (async status: %d)\n",
@@ -5608,53 +5687,75 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
     TRACE_PQCONSUMEINPUT;
     if (!PQconsumeInput(imp_dbh->conn))
-        return pg_db_ready_error(h, imp_dbh, "PQconsumeInput");
+        return pg_db_ready_error(h, imp_dbh, imp_sth, "PQconsumeInput");
 
-    ret = 0;
+    busy = 1;
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
-        ret = 1;
+        busy = 0;
 
-        /*
-          If async prepare has been used, deal with the result of the
-          prepare call and send the actual query afterwards if the
-          prepare was successful.
-        */
         imp_sth = imp_dbh->async_sth;
-        if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
-            status = PGRES_COMMAND_OK;
-            TRACE_PQGETRESULT;
-            while ((result = PQgetResult(imp_dbh->conn))) {
-                ret = _sqlstate(aTHX_ imp_dbh, result);
-                if (ret != PGRES_COMMAND_OK) status = ret;
+        if (imp_sth) {
+            switch (imp_sth->async_status) {
+            case STH_ASYNC_PREPPING:
+                pg_call = "PQsendQuery";
+                status = handle_between_result(imp_dbh);
 
-                PQclear(result);
+                if (PGRES_COMMAND_OK == status)
+                    if (imp_dbh->prep_top) 
+                        status = send_prep(imp_dbh);
+                    else {
+                        pg_call = send_query(imp_dbh, imp_sth);
+                        if (pg_call) status = PGRES_FATAL_ERROR;
+                    }
+
+                if (PGRES_COMMAND_OK != status) 
+                    return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
+
+                busy = 1;
+                break;
+
+            case STH_ASYNC_PREPARE:
+                pg_call = "PQsendPrepare";
+                status = handle_between_result(imp_dbh);
+
+                if (PGRES_COMMAND_OK == status) {
+                    imp_sth->prepared_by_us = DBDPG_TRUE;
+                    ++imp_dbh->prepare_number;
+
+                    if (imp_dbh->prep_top) {
+                        imp_sth->async_status = STH_ASYNC_PREPPING;
+
+                        pg_call = "PQsendQuery";
+                        status = send_prep(imp_dbh);
+                    } else {
+                        pg_call = send_query(imp_dbh, imp_sth);
+                        if (pg_call) status = PGRES_FATAL_ERROR;
+                    }
+                } else {
+                    Safefree(imp_sth->prepare_name);
+                    imp_sth->prepare_name = NULL;
+                }
+
+                if (PGRES_COMMAND_OK != status)
+                    return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
+
+                busy = 1;
             }
 
-            if (PGRES_COMMAND_OK != status) {
-                Safefree(imp_sth->prepare_name);
-                imp_sth->prepare_name = NULL;
-                imp_sth->async_status = STH_NO_ASYNC;
+            if (STH_ASYNC == imp_sth->async_status && 8 == imp_sth->async_flag){
+                if (TRACE5_slow) TRC(DBILOGFP, "%sfreeing quickexec temp sth\n", THEADER_slow);
 
-                imp_dbh->async_status = 0;
+                Safefree(imp_sth->statement);
+                Safefree(imp_sth);
+
                 imp_dbh->async_sth = NULL;
-
-                return pg_db_ready_error(h, imp_dbh, "PQsendPrepare");
             }
-
-            imp_sth->prepared_by_us = DBDPG_TRUE;
-            ++imp_dbh->prepare_number;
-
-            ret = pq_send_prepared_query(aTHX_ imp_dbh, imp_sth);
-            if (!ret) return pg_db_ready_error(h, imp_dbh, "PQsendQueryPrepared");
-            imp_sth->async_status = STH_ASYNC;
-
-            ret = 0;
-       }
+        }
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready\n", THEADER_slow);
-    return ret;
+    return !busy;
 } /* end of pg_db_ready */
 
 
@@ -5723,141 +5824,6 @@ int pg_db_cancel_sth(SV *sth, imp_sth_t *imp_sth)
     return cancel_result;
 
 } /* end of pg_db_cancel_sth */
-
-
-/* ================================================================== */
-/*
-  Finish up an existing async query, either by cancelling it,
-  or by waiting for a result.
- */
-static int handle_old_async(pTHX_ SV * handle, imp_dbh_t * imp_dbh, const int asyncflag) {
-
-    imp_sth_t * async_sth;
-    PGresult *result;
-    ExecStatusType ret;
-    int status;
-
-    if (TSTART_slow) TRC(DBILOGFP, "%sBegin handle_old_async (flag: %d)\n", THEADER_slow, asyncflag);
-
-    async_sth = imp_dbh->async_sth;
-
-    if (asyncflag & PG_OLDQUERY_CANCEL) {
-        /* Cancel the outstanding query */
-        if (TRACE3_slow) { TRC(DBILOGFP, "%sCancelling old async command\n", THEADER_slow); }
-        TRACE_PQISBUSY;
-        if (PQisBusy(imp_dbh->conn)) {
-            PGcancel *cancel;
-            char errbuf[256];
-            int cresult;
-            if (TRACE3_slow) TRC(DBILOGFP, "%sAttempting to cancel query\n", THEADER_slow);
-            TRACE_PQGETCANCEL;
-            cancel = PQgetCancel(imp_dbh->conn);
-            TRACE_PQCANCEL;
-            cresult = PQcancel(cancel,errbuf,255);
-            if (! cresult) {
-                if (TRACEWARN_slow) { TRC(DBILOGFP, "%sPQcancel failed: %s\n", THEADER_slow, errbuf); }
-                _fatal_sqlstate(aTHX_ imp_dbh);
-                pg_error(aTHX_ handle, PGRES_FATAL_ERROR, "Could not cancel previous command");
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_old_async (error: could not cancel)\n", THEADER_slow);
-                return -2;
-            }
-            TRACE_PQFREECANCEL;
-            PQfreeCancel(cancel);
-            /* Suck up the cancellation notice */
-            status = 0;
-            TRACE_PQGETRESULT;
-            while ((result = PQgetResult(imp_dbh->conn)) != NULL) {
-                TRACE_PQRESULTSTATUS;
-                ret = PQresultStatus(result);
-
-                TRACE_PQCLEAR;
-                PQclear(result);
-
-                if (!(ret == PGRES_COMMAND_OK || ret == PGRES_TUPLES_OK))
-                    status = -1;
-            }
-
-            if (async_sth && STH_ASYNC_PREPARE == async_sth->async_status
-                && -1 == status) {
-                Safefree(async_sth->prepare_name);
-                async_sth->prepare_name = NULL;
-            }
-
-            if (PQTRANS_IDLE != pg_db_txn_status(aTHX_ imp_dbh)) {
-                /* We need to rollback! - reprepare!? */
-                TRACE_PQEXEC;
-                PQexec(imp_dbh->conn, "rollback");
-                imp_dbh->done_begin = DBDPG_FALSE;
-            }
-        }
-    }
-    else if (asyncflag & PG_OLDQUERY_WAIT) {
-        /* Finish up the outstanding query and throw out the result, unless an error */
-        if (TRACE3_slow) { TRC(DBILOGFP, "%sWaiting for old async command to finish\n", THEADER_slow); }
-
-    wait_for_result:
-        TRACE_PQGETRESULT;
-        while ((result = PQgetResult(imp_dbh->conn)) != NULL) {
-            status = _sqlstate(aTHX_ imp_dbh, result);
-            TRACE_PQCLEAR;
-            PQclear(result);
-            if (status == PGRES_COPY_IN) { /* In theory, this should be caught by copystate, but we'll be careful */
-                TRACE_PQPUTCOPYEND;
-                if (-1 == PQputCopyEnd(imp_dbh->conn, NULL)) {
-                    TRACE_PQERRORMESSAGE;
-                    pg_error(aTHX_ handle, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
-                    if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_old_async (error: PQputCopyEnd)\n", THEADER_slow);
-                    return -2;
-                }
-            }
-            else if (status == PGRES_COPY_OUT) { /* Won't be as nice with this one */
-                pg_error(aTHX_ handle, PGRES_FATAL_ERROR, "Must finish copying first");
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_old_async (error: COPY_OUT status)\n", THEADER_slow);
-                return -2;
-            }
-            else if (status != PGRES_EMPTY_QUERY
-                     && status != PGRES_COMMAND_OK
-                     && status != PGRES_TUPLES_OK) {
-                TRACE_PQERRORMESSAGE;
-                pg_error(aTHX_ handle, status, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_old_async (error: bad status)\n", THEADER_slow);
-                return -2;
-            }
-        }
-
-        /* If an async prepare has just succeeded, the actual query also needs
-           to be sent & the result dealt with */
-        if (async_sth && async_sth->async_status == STH_ASYNC_PREPARE
-            && status == PGRES_COMMAND_OK) {
-            ret = pq_send_prepared_query(aTHX_ imp_dbh, async_sth);
-            if (!ret) {
-                TRACE_PQERRORMESSAGE;
-                pg_error(aTHX_ handle, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP,
-                                   "%sEnd handle_old_async (error: PQsendQueryPrepared failed)\n",
-                                   THEADER_slow);
-                return -2;
-            }
-
-            async_sth->async_status = STH_ASYNC;
-            goto wait_for_result;
-        }
-    }
-    else {
-        pg_error(aTHX_ handle, PGRES_FATAL_ERROR, "Cannot execute until previous async query has finished");
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_old_async (error: unfinished)\n", THEADER_slow);
-        return -2;
-    }
-
-    /* If we made it this far, safe to assume there is no running query */
-    imp_dbh->async_status = 0;
-    if (async_sth)
-        async_sth->async_status = STH_NO_ASYNC;
-
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_old_async\n", THEADER_slow);
-    return 0;
-
-} /* end of handle_old_async */
 
 
 /* ================================================================== */

@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 63;
+plan tests => 58;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -138,7 +138,7 @@ $t=q{Method do() fails when async query has not been cleared};
 eval {
     $dbh->do(q{SELECT 'async_blocks'});
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $t=q{Database method pg_result works as expected};
 eval {
@@ -206,7 +206,7 @@ SKIP: {
     eval {
         $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
     };
-    like ($@, qr{previous async}, $t);
+    like ($@, qr{wait for async}, $t);
 
     $t=q{Database method pg_cancel() works while async query is running};
     eval {
@@ -217,12 +217,6 @@ SKIP: {
     $dbh->pg_result();
 
     $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
-    $t=q{Database method do() cancels the previous async when requested};
-    eval {
-        $res = $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC + PG_OLDQUERY_CANCEL});
-    };
-    is ($@, q{}, $t);
-
     $t=q{Database method pg_result works when async query is still running};
     eval {
         $res = $dbh->pg_result();
@@ -233,31 +227,13 @@ SKIP: {
     $sth = $dbh->prepare('SELECT 567');
 
     $t = q{Running execute after async do() gives an error};
-    $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
+    $dbh->do('SELECT pg_sleep(10)', {pg_async => PG_ASYNC});
     eval {
         $res = $sth->execute();
     };
-    like ($@, qr{previous async}, $t);
-
-    $t = q{Running execute after async do() works when told to cancel};
-    $sth = $dbh->prepare('SELECT 678', {pg_async => PG_OLDQUERY_CANCEL});
-    eval {
-        $sth->execute();
-    };
-    is ($@, q{}, $t);
-
-    $t = q{Running execute after async do() works when told to wait};
-    $dbh->do('SELECT pg_sleep(2)', {pg_async => PG_ASYNC});
-    $sth = $dbh->prepare('SELECT 678', {pg_async => PG_OLDQUERY_WAIT});
-    eval {
-        $sth->execute();
-    };
-    is ($@, q{}, $t);
-
-    $sth->finish();
+    like ($@, qr{wait for async}, $t);
 
     $t=q{Database method pg_result returns 0 after query was cancelled};
-    $dbh->do('select pg_sleep(10)', {pg_async => PG_ASYNC});
     $dbh->pg_cancel();
     $res = $dbh->pg_result();
     is(0+$res, 0, $t);
@@ -278,13 +254,13 @@ $t=q{Method do() fails when previous async prepare has been executed};
 eval {
     $dbh->do('SELECT 123');
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $t=q{Method execute() fails when previous async prepare has been executed};
 eval {
     $sth->execute();
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $t=q{Database method pg_cancel works if async query has already finished};
 sleep 0.5;
@@ -292,14 +268,14 @@ eval {
     $res = $sth->pg_cancel();
 };
 is ($@, q{}, $t);
+$dbh->pg_result();
 
 $t=q{Method do() fails when previous execute async has not been cleared};
 $sth->execute();
-$sth->finish(); ## Ideally, this would clear out the async, but it cannot at the moment
 eval {
     $dbh->do('SELECT 345');
 };
-like ($@, qr{previous async}, $t);
+like ($@, qr{wait for async}, $t);
 
 $dbh->pg_result();
 
@@ -330,31 +306,19 @@ is ($@, q{}, $t);
 $t=q{Method fetchall_arrayref returns correct result after pg_result};
 is_deeply ($res, [[123]], $t);
 
-$dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
 $sth->execute();
-
-$t=q{Method prepare() works when passed in PG_OLDQUERY_CANCEL};
-
-my $sth2;
-my $SQL = 'INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456';
-eval {
-    $sth2 = $dbh->prepare($SQL, {pg_async => PG_ASYNC + PG_OLDQUERY_CANCEL});
-};
-is ($@, q{}, $t);
-
-$t=q{Fetch on cancelled statement handle fails};
+$t=q{Fetch on non-active statement handle fails};
 eval {
     $sth->fetch();
 };
-like ($@, qr{no statement executing}, $t);
-
-$t=q{Method execute works after async + cancel prepare};
-eval {
-    $sth2->execute();
-};
-is ($@, q{}, $t);
+like ($@, qr{statement not active}, $t);
+$dbh->pg_result();
+$sth->finish();
 
 $t=q{Statement method pg_result works on async statement handle};
+$dbh->do('CREATE TABLE dbd_pg_test5(id INT, t TEXT)');
+my $sth2 = $dbh->prepare('INSERT INTO dbd_pg_test5(id) SELECT 123 UNION SELECT 456', {pg_async => PG_ASYNC});
+$sth2->execute();
 eval {
     $res = $sth2->pg_result();
 };
@@ -379,4 +343,3 @@ $dbh->do('DROP TABLE dbd_pg_test5');
 
 cleanup_database($dbh,'test');
 $dbh->disconnect;
-

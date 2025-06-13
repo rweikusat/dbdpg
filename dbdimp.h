@@ -51,6 +51,8 @@ struct imp_dbh_st {
     PGresult  *last_result;     /* PGresult structure from the last executed query (can be from imp_dbh or imp_sth) */
     bool      result_clearable; /* Is it alright to call PQclear on last_result? (statements handles set it to false */
     imp_sth_t *do_tmp_sth;      /* temporary sth to refer inside a do() call */
+    char      *prep_stack[2];
+    unsigned  prep_top;
 };
 
 
@@ -113,6 +115,7 @@ struct imp_sth_st {
     int         * PQfmts;    /* List of formats to pass to PQ* */
     Oid         * PQoids;    /* List of types to pass to PQ* */
     char   *prepare_name;    /* name of the prepared query; NULL if not prepared */
+    char   *statement;
     char   *firstword;       /* first word of the statement */
 
     PGresult  *result;       /* result structure from the executed query */
