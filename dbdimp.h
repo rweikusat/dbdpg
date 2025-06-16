@@ -13,6 +13,15 @@ struct imp_drh_st {
 };
 
 /* Define dbh implementor data structure */
+struct async_action_st {
+    struct db_action_st *p;
+    
+    char *arg;
+    int (*action)(imp_dbh_t *, char *);
+    void (*after)(imp_dbh_t *);
+};
+typedef struct async_action_st async_action_t;
+
 struct imp_dbh_st {
     dbih_dbc_t com;            /* MUST be first element in structure */
 
@@ -51,8 +60,8 @@ struct imp_dbh_st {
     PGresult  *last_result;     /* PGresult structure from the last executed query (can be from imp_dbh or imp_sth) */
     bool      result_clearable; /* Is it alright to call PQclear on last_result? (statements handles set it to false */
     imp_sth_t *do_tmp_sth;      /* temporary sth to refer inside a do() call */
+    async_action_t *aa_first, **aa_pp;
 };
-
 
 /* Each statement is broken up into segments */
 struct seg_st {
