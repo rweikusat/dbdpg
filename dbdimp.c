@@ -5748,7 +5748,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
                 if (!status) return pg_db_ready_error(h, imp_dbh, imp_sth, "PQsendQuery");
             } else {
                 pg_call = send_query(imp_dbh, imp_sth);
-                if (!pg_call) return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
+                if (pg_call) return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
 
                 if (8 == imp_sth->async_flag){
                     if (TRACE5_slow) TRC(DBILOGFP, "%sfreeing quickexec temp sth\n", THEADER_slow);
