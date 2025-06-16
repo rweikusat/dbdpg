@@ -864,6 +864,7 @@ void dbd_db_destroy (SV * dbh, imp_dbh_t * imp_dbh)
     av_undef(imp_dbh->savepoints);
     sv_free((SV *)imp_dbh->savepoints);
     Safefree(imp_dbh->sqlstate);
+    while (imp_dbh->aa_first) async_action_done(imp_dbh);
 
     DBIc_IMPSET_off(imp_dbh);
 
