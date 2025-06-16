@@ -79,7 +79,8 @@ enum {
 
 enum {        
 	STH_NO_ASYNC,
-	STH_ASYNC
+	STH_ASYNC,
+        STH_ASYNC_PREPARE
 };
 
 static void pg_error(pTHX_ SV *h, int error_num, const char *error_msg);
@@ -2567,7 +2568,7 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         status = PQsendPrepare(imp_dbh->conn, imp_sth->prepare_name, statement, params,
                                imp_sth->PQoids);
         if (status) {
-            imp_sth->async_status = STH_ASYNC;
+            imp_sth->async_status = STH_ASYNC_PREPARE;
             add_async_action(NULL, NULL, NULL, imp_dbh);
         } else {
             status = PGRES_FATAL_ERROR;
@@ -3455,6 +3456,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         croak("Must wait for async connect to finish before issuing commands");
 
     default:
+        if (STH_ASYNC_PREPARE == imp_sth->async_status)
+            break;
+        
         croak("Must wait for async query to finish before issuing more commands");
     }
 
@@ -3785,7 +3789,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error)\n", THEADER_slow);
                 return -2;
             }
-        } else if (STH_ASYNC == imp_sth->async_status && imp_dbh->aa_first) {
+        } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
             if (TRACE5_slow) TRC(DBILOGFP, "%swaiting for async preprare to complete (%s)\n",
                                  THEADER_slow, imp_sth->prepare_name);
         } else {
@@ -3793,7 +3797,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                             THEADER_slow, imp_sth->prepare_name);
         }
 
-        if (!(STH_ASYNC == imp_sth->async_status && imp_dbh->aa_first)) {
+        if (STH_ASYN_PREPAREC != imp_sth->async_status) {
             if (TRACE7_slow) {
                 for (x=0,currph=imp_sth->ph; NULL != currph; currph=currph->nextph,x++) {
                     TRC(DBILOGFP, "%sPQexecPrepared item #%d\n", THEADER_slow, (int)x);
