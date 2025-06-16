@@ -2568,9 +2568,10 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         TRACE_PQSENDPREPARE;
         status = PQsendPrepare(imp_dbh->conn, imp_sth->prepare_name, statement, params,
                                imp_sth->PQoids);
-        if (status)
+        if (status) {
             imp_sth->async_status = STH_ASYNC_PREPARE;
-        else {
+            add_async_action(NULL, NULL, NULL, imp_dbh);
+        } else {
             status = PGRES_FATAL_ERROR;
             _fatal_sqlstate(aTHX_ imp_dbh);
         }
@@ -3199,6 +3200,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     char *                  cmdStatus = NULL;
     long                    rows = 0;
     imp_sth_t *             sth;
+    int                     want_begin;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_quickexec (query: %s async: %d async_status: %d)\n",
             THEADER_slow, sql, asyncflag, imp_dbh->async_status);
@@ -3232,13 +3234,10 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
 
     /* If not autocommit, start a new transaction */
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        if (asyncflag & PG_ASYNC) {
-            if (imp_dbh->txn_read_only)
-                imp_dbh->prep_stack[imp_dbh->prep_top++] = "set transaction read only";
-
-            imp_dbh->prep_stack[imp_dbh->prep_top++] = "begin";
-            imp_dbh->done_begin = DBDPG_TRUE;
-        } else {
+        want_begin = 0;
+        if (asyncflag & PG_ASYNC)
+            want_begin = 1;
+        else {
             status = _result(aTHX_ imp_dbh, "begin");
             if (PGRES_COMMAND_OK != status) {
                 TRACE_PQERRORMESSAGE;
@@ -3268,8 +3267,11 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     /* Asynchronous commands get kicked off and return undef */
     if (asyncflag & PG_ASYNC) {
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with do()\n", THEADER_slow);
-        if (imp_dbh->prep_top) {
-            send_prep(imp_dbh);
+        if (want_begin) {
+            aa_send_query(imp_dbh, "begin");
+            add_async_action(NULL, NULL, aa_after_begin, imp_dbh);
+            if (imp_dbh->txn_read_only) add_async_action("set transaction read only",
+                                                         aa_send_query, NULL);
 
             Newxz(sth, 1, imp_sth_t);
             sth->async_flag = 8;
@@ -3411,7 +3413,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     STRLEN        execsize, x;
     unsigned int  placeholder_digits;
     seg_t *       currseg;
-    int           num_fields;
+    int           num_fields, want_begin;
     long          ret = -2;
     PQExecType    pqtype = PQTYPE_UNKNOWN;
     long          power_of_ten;
@@ -3460,13 +3462,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     /* If not autocommit, start a new transaction */
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        if (imp_sth->async_flag & PG_ASYNC) {
-            if (imp_dbh->txn_read_only)
-                imp_dbh->prep_stack[imp_dbh->prep_top++] = "set transaction read only";
-
-            imp_dbh->prep_stack[imp_dbh->prep_top++] = "begin";
-            imp_dbh->done_begin = DBDPG_TRUE;
-        } else {
+        want_begin = 0;
+        if (imp_sth->async_flag & PG_ASYNC) want_begin = 1;
+        else {
             status = _result(aTHX_ imp_dbh, "begin");
             if (PGRES_COMMAND_OK != status) {
                 TRACE_PQERRORMESSAGE;
@@ -3652,7 +3650,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             TRC(DBILOGFP, "%s;\n\n", stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
-            if (!imp_dbh->prep_top) {
+            if (!want_begin) {
                 TRACE_PQSENDQUERY;
                 ret = PQsendQuery(imp_dbh->conn, stmt);
             }
@@ -3743,7 +3741,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow, stmt);
 
         if (imp_sth->async_flag & PG_ASYNC) {
-            if (!imp_dbh->prep_top) {
+            if (!want_begin) {
                 TRACE_PQSENDQUERYPARAMS;
                 ret = PQsendQueryParams
                     (imp_dbh->conn, stmt, imp_sth->numphs,
@@ -3821,7 +3819,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             }
 
             if (imp_sth->async_flag & PG_ASYNC) {
-                if (!imp_dbh->prep_top) {
+                if (!want_begin) {
                     TRACE_PQSENDQUERYPREPARED;
                     ret = PQsendQueryPrepared
                         (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
@@ -3863,9 +3861,16 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
     /* If running asynchronously, we don't stick around for the result */
     if (imp_sth->async_flag & PG_ASYNC) {
-        if (imp_dbh->prep_top) {
-            imp_sth->async_status = STH_ASYNC_PREPPING;
-            ret = send_prep(imp_dbh);
+        if (want_begin) {
+            if (!imp_dbh->aa_first) {
+                aa_send_query(imp_dbh, "begin");
+                add_async_action(NULL, NULL, aa_after_begin, imp_dbh);
+            } else
+                add_async_action("begin", aa_send_query, aa_after_begin);
+            
+            if (imp_dbh->txn_read_only)
+                add_async_action("set transaction read only", aa_send_query,
+                                 NULL, imp_dbh);
         }
 
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
