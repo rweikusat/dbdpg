@@ -125,6 +125,35 @@ static void add_async_action(char *arg,
     imp_dbh_t->aa_pp = &aa->p;
 }
 
+static void async_action_done(imp_dbh_t *imp_dbh)
+{
+    async_action_t *as;
+
+    aa = imp_dbh->aa_first;
+    if (!aa) return;
+
+    imp_dbh->aa_first = aa->p;
+    if (!imp_dbh->aa_first) imp_dbh->aa_pp = &imp_dbh->aa_first;
+
+    Safefree(aa);
+}
+
+static int aa_send_query(imp_dbh_t *imp_dbh, char *qry)
+{
+    dTHX;
+
+    if (TRACE5_slow) TRC(DBILOGFP, "%sSending aa query '%s'\n",
+                         THEADER_slow, qry);
+
+    TRACE_PQSENDQUERY;
+    return PQsendQuery(imp_dbh->conn, qry);
+}
+
+static void aa_after_begin(imp_dbh_t *imp_dbh)
+{
+    imp_dbh->done_begin = DBDPG_TRUE;
+}
+
 /* ================================================================== */
 static int want_async_connect(pTHX_ SV *attrs)
 {
