@@ -5736,10 +5736,10 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (!PQisBusy(imp_dbh->conn)) {
         busy = 0;
 
-        imp_sth = imp_dbh->async_sth;
         aa = imp_dbh->aa_first;
         if (aa) {
             busy = 1;
+            imp_sth = imp_dbh->async_sth;
             
             status = handle_between_result(imp_dbh);
             if (PGRES_COMMAND_OK != status) return pg_db_ready_error(h, imp_dbh, imp_sth, "PQsendQuery");
