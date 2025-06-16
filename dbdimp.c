@@ -107,6 +107,23 @@ void dbd_init (dbistate_t *dbistate)
     DBISTATE_INIT;
 }
 
+/* ================================================================== */
+static void add_async_action(char *arg,
+                             int (*action)(imp_dbh_t *, char *),
+                             void (*after)(imp_dbh_t *),
+                             imp_dbh_t *imp_dbh)
+{
+    async_action_t *aa;
+
+    Newx(aa, 1, async_action_t);
+    aa->p = NULL;
+    aa->arg = arg;
+    aa->action = action;
+    aa->after = after;
+
+    *imp_dbh_t->aa_pp = aa;
+    imp_dbh_t->aa_pp = &aa->p;
+}
 
 /* ================================================================== */
 static int want_async_connect(pTHX_ SV *attrs)
@@ -175,7 +192,8 @@ int dbd_db_login6 (SV * dbh, imp_dbh_t * imp_dbh, char * dbname, char * uid, cha
     int            async_connect;
 
     async_connect = want_async_connect(aTHX_ attr);
-    imp_dbh->prep_top = 0;
+    imp_dbh->aa_first = NULL;
+    imp_dbh->aa_pp = &imp_dbh->aa_first;
 
     if (TSTART_slow) {
         TRC(DBILOGFP, "%sBegin dbd_db_login6\n", THEADER_slow);
