@@ -817,6 +817,10 @@ int dbd_db_disconnect (SV * dbh, imp_dbh_t * imp_dbh)
         imp_dbh->conn = NULL;
     }
 
+    imp_dbh->async_status = DBH_NO_ASYNC;
+    imp_dbh->async_sth = NULL;
+    while (imp_dbh->aa_first) async_action_done(imp_dbh);
+
     /* We don't free imp_dbh since a reference still exists    */
     /* The DESTROY method is the only one to 'free' memory.    */
     /* Note that statement objects may still exists for this dbh! */
