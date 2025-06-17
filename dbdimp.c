@@ -108,7 +108,7 @@ void dbd_init (dbistate_t *dbistate)
 
 /* ================================================================== */
 static void add_async_action(char *arg,
-                             int (*action)(imp_dbh_t *, char *),
+                             char *(*action)(imp_dbh_t *, char *),
                              void (*after)(imp_dbh_t *),
                              imp_dbh_t *imp_dbh)
 {
@@ -137,15 +137,17 @@ static void async_action_done(imp_dbh_t *imp_dbh)
     Safefree(aa);
 }
 
-static int aa_send_query(imp_dbh_t *imp_dbh, char *qry)
+static char *aa_send_query(imp_dbh_t *imp_dbh, char *qry)
 {
     dTHX;
+    int ret;
 
     if (TRACE5_slow) TRC(DBILOGFP, "%sSending aa query '%s'\n",
                          THEADER_slow, qry);
 
     TRACE_PQSENDQUERY;
-    return PQsendQuery(imp_dbh->conn, qry);
+    ret = PQsendQuery(imp_dbh->conn, qry);
+    return ret ? NULL : "PQsendQuery";
 }
 
 static void aa_after_begin(imp_dbh_t *imp_dbh)
@@ -5757,8 +5759,8 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
             
             aa = imp_dbh->aa_first;
             if (aa) {
-                status = aa->action(imp_dbh, aa->arg);
-                if (!status) return pg_db_ready_error(h, imp_dbh, imp_sth, "PQsendQuery");
+                pg_call = aa->action(imp_dbh, aa->arg);
+                if (pg_call) return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);
             } else {
                 pg_call = send_query(imp_dbh, imp_sth);
                 if (pg_call) return pg_db_ready_error(h, imp_dbh, imp_sth, pg_call);

@@ -17,7 +17,7 @@ struct async_action_st {
     struct async_action_st *p;
     
     char *arg;
-    int (*action)(imp_dbh_t *, char *);
+    char *(*action)(imp_dbh_t *, char *);
     void (*after)(imp_dbh_t *);
 };
 typedef struct async_action_st async_action_t;
