@@ -5626,13 +5626,16 @@ static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, imp_sth_t *imp_sth,
     if (strcmp(imp_dbh->sqlstate, "00000") != 0)
         _fatal_sqlstate(aTHX_ imp_dbh);
 
-    if (imp_sth) 
-        imp_sth->async_status = STH_NO_ASYNC;
+    if (imp_sth)
+        if (8 == imp_sth->async_flag) {
+            Safefree(imp_sth->statement);
+            Safefree(imp_sth);
+        } else
+            imp_sth->async_status = STH_NO_ASYNC;
 
     imp_dbh->async_status = DBH_NO_ASYNC;
     imp_dbh->async_sth = NULL;
     while (imp_dbh->aa_first) async_action_done(imp_dbh);
-    
 
     TRACE_PQERRORMESSAGE;
     pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
