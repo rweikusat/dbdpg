@@ -3471,7 +3471,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     /* If not autocommit, start a new transaction */
     want_begin = 0;
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        if (imp_sth->async_flag & PG_ASYNC) want_begin = 1;
+        if (imp_sth->async_flag & PG_ASYNC)
+            want_begin = 1;
         else {
             status = _result(aTHX_ imp_dbh, "begin");
             if (PGRES_COMMAND_OK != status) {
