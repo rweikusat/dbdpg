@@ -4205,7 +4205,7 @@ commands and presently, there's no support in the code for this.
 For defined behaviour, C<pg_cancel> must only be used for statements
 which have been prepared on the server-side already (eg, by enabling
 C<pg_prepare_now> for the C<prepare> call) and with C<AutoCommit>
-enabled. 
+enabled.
 
 =item B<pg_ready>
 

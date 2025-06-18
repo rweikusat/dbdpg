@@ -15,7 +15,7 @@ struct imp_drh_st {
 /* Define dbh implementor data structure */
 struct async_action_st {
     struct async_action_st *p;
-    
+
     char *arg;
     char *(*action)(imp_dbh_t *, char *);
     void (*after)(imp_dbh_t *);

@@ -3464,7 +3464,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     default:
         if (STH_ASYNC_PREPARE == imp_sth->async_status)
             break;
-        
+
         croak("Must wait for async query to finish before issuing more commands");
     }
 
@@ -3876,7 +3876,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 add_async_action(NULL, NULL, aa_after_begin, imp_dbh);
             } else
                 add_async_action("begin", aa_send_query, aa_after_begin, imp_dbh);
-            
+
             if (imp_dbh->txn_read_only)
                 add_async_action("set transaction read only", aa_send_query,
                                  NULL, imp_dbh);
@@ -5750,7 +5750,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         if (aa) {
             busy = 1;
             imp_sth = imp_dbh->async_sth;
-            
+
             status = handle_between_result(imp_dbh);
             if (PGRES_COMMAND_OK != status) return pg_db_ready_error(h, imp_dbh, imp_sth,
                                                                      STH_ASYNC_PREPARE == imp_sth->async_status ?
