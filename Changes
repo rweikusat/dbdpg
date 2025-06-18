@@ -1,5 +1,10 @@
 Changes for the DBD::PgAsync module
 
+--- 06/18/2025 rweikusat@talktalk.net ---
+
+   - handle done_begin correctly for autostarted transactions
+   - much simpler pg_db_ready
+
 --- 06/13/2025 rweikusat@talktalk.net ---
 
   - run transaction start commands for AutoCommit off
