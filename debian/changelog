@@ -1,3 +1,11 @@
+libdbd-pg-async-perl (0.3) unstable; urgency=medium
+
+  * only set imp_dbh->done_begin for automatically started transactions
+    after the corresponding begin statement actually succeeded
+  * much simpler pg_db_ready
+
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Wed, 18 Jun 2025 18:54:25 +0100
+
 libdbd-pg-async-perl (0.2) unstable; urgency=medium
 
   * start transactions asychronously when AutoCommit is off 
