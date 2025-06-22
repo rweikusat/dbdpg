@@ -1,3 +1,9 @@
+libdbd-pg-async-perl (0.4) unstable; urgency=medium
+
+  * 
+
+ --
+
 libdbd-pg-async-perl (0.3) unstable; urgency=medium
 
   * only set imp_dbh->done_begin for automatically started transactions
