@@ -30,3 +30,6 @@ sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
+
+fixing-cancel notes: Fix interactions of cancel and transparently started
+asychronous operations.
