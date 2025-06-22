@@ -105,5 +105,6 @@ sub dbh_connect
     
     $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1, pg_prepare_now => 1 });
     $sth->execute(1);
+    $dbh->pg_cancel();
     wait_for_query($dbh);
 }
