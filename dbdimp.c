@@ -1901,8 +1901,10 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
             croak ("%s", PQerrorMessage(imp_dbh->conn));
         }
 
-        if (STH_ASYNC_PREPARE == imp_sth->async_status)
+        if (STH_ASYNC_PREPARE == imp_sth->async_status) {
             imp_dbh->async_status = DBH_ASYNC;
+            imp_dbh->async_sth = imp_sth;
+        }
     }
 
     /* Tell DBI to call destroy when this handle ends */
