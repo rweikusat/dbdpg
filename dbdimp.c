@@ -3800,6 +3800,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error)\n", THEADER_slow);
                 return -2;
             }
+            if (STH_ASYNC_PREPARE == imp_sth->async_status)
+                add_async_action(NULL, NULL, NULL, imp_dbh);
         } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
             if (TRACE5_slow) TRC(DBILOGFP, "%swaiting for async preprare to complete (%s)\n",
                                  THEADER_slow, imp_sth->prepare_name);
