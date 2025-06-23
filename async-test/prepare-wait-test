@@ -31,7 +31,7 @@ sub wait_for
 {
     my ($fd, $what) = @_;
     my ($rin, $win, $vec, $nf);
-    
+
     vec($vec, $fd, 1) = 1;
     if ($what == 1) {
         $rin = $vec;
@@ -72,7 +72,7 @@ sub dbh_connect
 {
     my $acct = $_[0];
     my ($cs, $dbh, $rc);
-    
+
     msg('connecting');
 
     $cs = make_cspec($acct);
@@ -107,7 +107,7 @@ sub print_pages
         push(@pgs, [@$row]);
         $cmd_max < $_ and $cmd_max = $_ for length($$row[R_CMD]);
     }
-    
+
     $cmd_max += 4;
     $fmt = "\t%-${cmd_max}s%s\n";
     printf($fmt, map { encode('UTF-8', $_) } @$_) for @pgs;
@@ -118,7 +118,7 @@ sub print_pages
 #
 {
     my ($dbh, $sth, $row);
-    
+
     DBI->trace(15);
     $dbh = dbh_connect('../../pg-conn');
     $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1, pg_prepare_now => 1 });
