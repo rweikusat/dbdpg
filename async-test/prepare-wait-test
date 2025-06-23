@@ -95,6 +95,25 @@ sub dbh_connect
     return $dbh;
 }
 
+sub print_pages
+{
+    my ($sect, $sth) = @_;
+    my ($fmt, @pgs, $cmd_max, $row);
+
+    print("Section $sect manpages\n");
+    return unless $sth;
+
+    while ($row = $sth->fetchrow_arrayref()) {
+        push(@pgs, [@$row]);
+        $cmd_max < $_ and $cmd_max = $_ for length($$row[R_CMD]);
+    }
+    
+    $cmd_max += 4;
+    $fmt = "\t%-${cmd_max}s%s\n";
+    printf($fmt, map { encode('UTF-8', $_) } @$_) for @pgs;
+    print("\n");
+}
+
 #*  main
 #
 {
