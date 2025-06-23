@@ -3463,8 +3463,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         croak("Must wait for async connect to finish before issuing commands");
 
     default:
-        if (STH_ASYNC_PREPARE == imp_sth->async_status)
+        if (imp_sth == imp_dbh->async_sth
+            && STH_ASYNC_PREPARE == imp_sth->async_status) {
+            add_async_action(NULL, NULL, NULL, imp_dbh);
             break;
+        }
 
         croak("Must wait for async query to finish before issuing more commands");
     }
