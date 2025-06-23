@@ -4164,7 +4164,7 @@ sent asynchronously. The basic usage is as follows:
 
 =head3 Asynchronous Constants
 
-There are currently three asynchronous constants automatically exported by DBD::PgAsync.
+There is currently one asynchronou constants automatically exported by DBD::PgAsync.
 
 =over 4
 
