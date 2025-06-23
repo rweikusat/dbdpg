@@ -4233,6 +4233,19 @@ that would have been returned by the asynchronous L</do> or L</execute> if it ha
 
 =back
 
+=head3 Asynchronous Connect
+
+Passing a true value for the attribute pg_async_connect to the DBI
+connect method, eg,
+
+  $dbh = DBI->connect('dbi:PgAsync:...', $username, $password,
+                      { pg_async_connect => 1 });
+
+starts an asynchronous connect. The B<pg_continue_connect> method must
+be used afterwards to complete the connection establishment process. If
+the attribute is present but its value is false, an ordinarty
+synchronous connect will be done instead.
+
 =head3 Asynchronous Examples
 
 Here are some working examples of asynchronous queries. Note that we'll use the B<pg_sleep> function to emulate a
@@ -4312,19 +4325,6 @@ as you don't need it anymore.
     $sth2->pg_result();
     $count = $sth2->fetchall_arrayref()->[0][0];
   }
-
-=head3 Asynchronous Connect
-
-Passing a true value for the attribute pg_async_connect to the DBI
-connect method, eg,
-
-  $dbh = DBI->connect('dbi:PgAsync:...', $username, $password,
-                      { pg_async_connect => 1 });
-
-starts an asynchronous connect. The B<pg_continue_connect> method must
-be used afterwards to complete the connection establishment process. If
-the attribute is present but its value is false, an ordinarty
-synchronous connect will be done instead.
 
 =head2 Array support
 
