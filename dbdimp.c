@@ -2573,9 +2573,8 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         TRACE_PQSENDPREPARE;
         status = PQsendPrepare(imp_dbh->conn, imp_sth->prepare_name, statement, params,
                                imp_sth->PQoids);
-        if (status) {
+        if (status) 
             imp_sth->async_status = STH_ASYNC_PREPARE;
-            add_async_action(NULL, NULL, NULL, imp_dbh);
         } else {
             status = PGRES_FATAL_ERROR;
             _fatal_sqlstate(aTHX_ imp_dbh);
@@ -5750,6 +5749,8 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         if (aa) {
             busy = 1;
             imp_sth = imp_dbh->async_sth;
+            fprintf(stderr, "imp_sth %p\n", imp_sth);
+            
 
             status = handle_between_result(imp_dbh);
             if (PGRES_COMMAND_OK != status) return pg_db_ready_error(h, imp_dbh, imp_sth,
