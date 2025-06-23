@@ -2577,7 +2577,7 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
                                imp_sth->PQoids);
         if (status) 
             imp_sth->async_status = STH_ASYNC_PREPARE;
-        } else {
+        else {
             status = PGRES_FATAL_ERROR;
             _fatal_sqlstate(aTHX_ imp_dbh);
         }
