@@ -4246,6 +4246,14 @@ be used afterwards to complete the connection establishment process. If
 the attribute is present but its value is false, an ordinarty
 synchronous connect will be done instead.
 
+=head3 Asychronous Prepare
+
+When the C<pg_prepare_now> attributes is used together with
+C<pg_async> for a B<prepare> call, an asychronous server-side prepare
+will be initiated. The B<pg_db_ready> and B<pg_result> method can be
+used to wait for the result of that without actually executing the
+query. 
+
 =head3 Asynchronous Examples
 
 Here are some working examples of asynchronous queries. Note that we'll use the B<pg_sleep> function to emulate a
