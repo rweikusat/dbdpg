@@ -158,7 +158,7 @@ static void aa_after_begin(imp_dbh_t *imp_dbh)
 static void aa_after_prepare(imp_dbh_t *imp_dbh)
 {
     ++imp_dbh->prepare_number;
-    imp_dbh->async_sth->prepared_by_us = DBD_PG_TRUE;
+    imp_dbh->async_sth->prepared_by_us = DBDPG_TRUE;
 }
 
 /* ================================================================== */
