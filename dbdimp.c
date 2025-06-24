@@ -5506,6 +5506,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     ExecStatusType status = PGRES_FATAL_ERROR;
     long rows = 0;
     char *cmdStatus = NULL;
+    imp_sth_t *imp_sth;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_result\n", THEADER_slow);
 
@@ -5535,6 +5536,14 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 
             break;
         case PGRES_COMMAND_OK:
+            /* async prepare */
+            imp_sth = imp_dbh->async_sth;
+            if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
+                imp_sth->prepared_by_us = DBDPG_TRUE;
+                ++imp_dbh->prepare_number;
+                break;
+            }
+
             /* non-select statement */
             TRACE_PQCMDSTATUS;
             cmdStatus = PQcmdStatus(result);
