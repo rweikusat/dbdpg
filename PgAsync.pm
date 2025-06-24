@@ -4164,7 +4164,7 @@ sent asynchronously. The basic usage is as follows:
 
 =head3 Asynchronous Constants
 
-There are currently three asynchronous constants automatically exported by DBD::PgAsync.
+There is currently one asynchronou constants automatically exported by DBD::PgAsync.
 
 =over 4
 
@@ -4232,6 +4232,27 @@ that would have been returned by the asynchronous L</do> or L</execute> if it ha
   $result = $dbh->pg_result;
 
 =back
+
+=head3 Asynchronous Connect
+
+Passing a true value for the attribute pg_async_connect to the DBI
+connect method, eg,
+
+  $dbh = DBI->connect('dbi:PgAsync:...', $username, $password,
+                      { pg_async_connect => 1 });
+
+starts an asynchronous connect. The B<pg_continue_connect> method must
+be used afterwards to complete the connection establishment process. If
+the attribute is present but its value is false, an ordinarty
+synchronous connect will be done instead.
+
+=head3 Asychronous Prepare
+
+When the C<pg_prepare_now> attributes is used together with
+C<pg_async> for a B<prepare> call, an asychronous server-side prepare
+will be initiated. The B<pg_db_ready> and B<pg_result> method can be
+used to wait for the result of that without actually executing the
+query. 
 
 =head3 Asynchronous Examples
 
@@ -4312,19 +4333,6 @@ as you don't need it anymore.
     $sth2->pg_result();
     $count = $sth2->fetchall_arrayref()->[0][0];
   }
-
-=head3 Asynchronous Connect
-
-Passing a true value for the attribute pg_async_connect to the DBI
-connect method, eg,
-
-  $dbh = DBI->connect('dbi:PgAsync:...', $username, $password,
-                      { pg_async_connect => 1 });
-
-starts an asynchronous connect. The B<pg_continue_connect> method must
-be used afterwards to complete the connection establishment process. If
-the attribute is present but its value is false, an ordinarty
-synchronous connect will be done instead.
 
 =head2 Array support
 

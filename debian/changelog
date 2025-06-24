@@ -1,8 +1,8 @@
 libdbd-pg-async-perl (0.4) unstable; urgency=medium
 
-  * 
+  * enable waiting for the result of an async prepare with calling execute
 
- --
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Mon, 23 Jun 2025 18:17:54 +0100
 
 libdbd-pg-async-perl (0.3) unstable; urgency=medium
 

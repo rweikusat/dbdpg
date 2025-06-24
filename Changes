@@ -1,5 +1,10 @@
 Changes for the DBD::PgAsync module
 
+--- 06/23/2025 rweikusat@talktalk.net ---
+
+   - enable waiting for the result of an async prepare via
+     pg_db_ready/ pg_result without executing the query
+
 --- 06/18/2025 rweikusat@talktalk.net ---
 
    - handle done_begin correctly for autostarted transactions
