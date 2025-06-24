@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 60;
+plan tests => 61;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -345,6 +345,15 @@ is ($res, 2, $t);
     };
     is($@, q{}, $t);
     is(0+$res, 0, $t);
+}
+
+{
+    $t=q{Database method pg_cancel doesn't work after async prepare};
+    my $sth = $dbh->prepare('select pg_sleep(?)', { pg_async => 1, pg_prepare_now => 1 });
+    eval {
+        $dbh->pg_cancel();
+    };
+    isnt($@, q{}, $t);
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
