@@ -155,6 +155,12 @@ static void aa_after_begin(imp_dbh_t *imp_dbh)
     imp_dbh->done_begin = DBDPG_TRUE;
 }
 
+static void aa_after_prepare(imp_dbh_t *imp_dbh)
+{
+    ++imp_dbh->prepare_number;
+    imp_dbh->async_sth->prepared_by_us = DBD_PG_TRUE;
+}
+
 /* ================================================================== */
 static int want_async_connect(pTHX_ SV *attrs)
 {
@@ -3465,7 +3471,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     default:
         if (imp_sth == imp_dbh->async_sth
             && STH_ASYNC_PREPARE == imp_sth->async_status) {
-            add_async_action(NULL, NULL, NULL, imp_dbh);
+            add_async_action(NULL, NULL, aa_after_prepare, imp_dbh);
             break;
         }
 
@@ -3801,7 +3807,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 return -2;
             }
             if (STH_ASYNC_PREPARE == imp_sth->async_status)
-                add_async_action(NULL, NULL, NULL, imp_dbh);
+                add_async_action(NULL, NULL, aa_after_prepare, imp_dbh);
         } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
             if (TRACE5_slow) TRC(DBILOGFP, "%swaiting for async preprare to complete (%s)\n",
                                  THEADER_slow, imp_sth->prepare_name);
