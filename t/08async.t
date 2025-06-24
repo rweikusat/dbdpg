@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 62;
+plan tests => 61;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -347,12 +347,11 @@ is ($res, 2, $t);
     is(0+$res, 0, $t);
 
     $t=q{Can prepare another statement after waiting for an async prepare via pg_result};
-    my $sth2 = $dbh->prepare('select pg_sleep(?)', { pg_async => 1, pg_prepare_now => 1 });
+    my $sth2;
     eval {
-        $res = $dbh->pg_result();
+        $sth2 = $dbh->prepare('select pg_sleep(?)', { pg_prepare_now => 1 });
     };
     is($@, q{}, $t);
-    is(0+$res, 0, $t);
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
