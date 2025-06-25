@@ -157,8 +157,13 @@ static void aa_after_begin(imp_dbh_t *imp_dbh)
 
 static void aa_after_prepare(imp_dbh_t *imp_dbh)
 {
+    imp_sth_t *imp_sth;
+
     ++imp_dbh->prepare_number;
-    imp_dbh->async_sth->prepared_by_us = DBDPG_TRUE;
+
+    imp_sth = imp_dbh->async_sth;
+    imp_sth->prepared_by_us = DBDPG_TRUE;
+    imp_sth->async_status = STH_ASYNC;
 }
 
 /* ================================================================== */
@@ -5698,8 +5703,6 @@ static char *send_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
     dTHX;
     char *pg_call;
     int ret;
-
-    imp_sth->async_status = STH_ASYNC;
 
     switch (pqtype_from_sth(imp_sth)) {
     case PQTYPE_PREPARED:
