@@ -5821,7 +5821,8 @@ int pg_db_cancel(SV *h, imp_dbh_t *imp_dbh)
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_cancel (async status: %d)\n",
                          THEADER_slow, imp_dbh->async_status);
 
-    if (DBH_ASYNC != imp_dbh->async_status) {
+    if (!(DBH_ASYNC == imp_dbh->async_status
+          && (!imp_dbh->async_sth || STH_ASYNC == imp_dbh->async_sth->async_status))) {
         pg_error(aTHX_ h, PGRES_FATAL_ERROR, "No asynchronous query is running");
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_cancel (error: no async)\n", THEADER_slow);
         return DBDPG_FALSE;
