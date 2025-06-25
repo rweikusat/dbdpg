@@ -1,3 +1,9 @@
+libdbd-pg-async-perl (0.4.1) unstable; urgency=medium
+
+  * fix handling of prepare state variables after async prepare
+
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Tue, 24 Jun 2025 18:15:25 +0100
+
 libdbd-pg-async-perl (0.4) unstable; urgency=medium
 
   * enable waiting for the result of an async prepare with calling execute

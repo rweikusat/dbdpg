@@ -345,6 +345,13 @@ is ($res, 2, $t);
     };
     is($@, q{}, $t);
     is(0+$res, 0, $t);
+
+    $t=q{Can prepare another statement after waiting for an async prepare via pg_result};
+    my $sth2;
+    eval {
+        $sth2 = $dbh->prepare('select pg_sleep(?)', { pg_prepare_now => 1 });
+    };
+    is($@, q{}, $t);
 }
 
 {
