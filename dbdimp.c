@@ -215,6 +215,8 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
     char *pq_call;
     dTHX;
     
+    if (TRACE5_slow) TRC(DBILOGFP, "%sHandling aa action\n", THEADER_slow);
+    
     aa = imp_dbh->aa_first;
     if (aa->after) aa->after(imp_dbh);
     async_action_done(imp_dbh);
@@ -228,7 +230,7 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
         pq_call = send_async_query(imp_dbh, imp_sth);
 
         if (!pq_call && 8 == imp_sth->async_flag){
-            if (TRACE5_slow) TRC(DBILOGFP, "%sfreeing quickexec temp sth\n", THEADER_slow);
+            if (TRACE5_slow) TRC(DBILOGFP, "%sFreeing quickexec temp sth\n", THEADER_slow);
 
             Safefree(imp_sth->statement);
             Safefree(imp_sth);
