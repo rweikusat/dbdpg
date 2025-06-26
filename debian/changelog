@@ -1,8 +1,9 @@
 libdbd-pg-async-perl (0.4.2) unstable; urgency=medium
 
-  * 
+  * fixed pg_db_result to work as documented in face of asychronous
+    statements transparently issued by the driver
 
- --
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Thu, 26 Jun 2025 19:16:47 +0100
 
 libdbd-pg-async-perl (0.4.1) unstable; urgency=medium
 
