@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 61;
+plan tests => 62;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -352,6 +352,15 @@ is ($res, 2, $t);
         $sth2 = $dbh->prepare('select pg_sleep(?)', { pg_prepare_now => 1 });
     };
     is($@, q{}, $t);
+}
+
+{
+    $t=q{Database method pg_result blocks until query done in face of prep statements};
+    $dbh->{AutoCommit} = 0;
+    $dbh->{ReadOnly} = 1;
+    my $sth = $dbh->prepare('select 125', { pg_async => 1 });
+    my $rows = $dbh->pg_result();
+    is(0+$rows, 1, $t);
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
