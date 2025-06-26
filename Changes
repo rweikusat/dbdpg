@@ -1,5 +1,10 @@
 Changes for the DBD::PgAsync module
 
+--- 06/26/2025 rweikusat@talktalk.net ---
+
+   - fix pg_db_result to work as documented in face of asynchronous
+     prep statements
+
 --- 06/23/2025 rweikusat@talktalk.net ---
 
    - enable waiting for the result of an async prepare via
