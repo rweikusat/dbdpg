@@ -1,3 +1,9 @@
+libdbd-pg-async-perl (0.4.2) unstable; urgency=medium
+
+  * 
+
+ --
+
 libdbd-pg-async-perl (0.4.1) unstable; urgency=medium
 
   * fix handling of prepare state variables after async prepare
