@@ -214,9 +214,9 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
     imp_sth_t *imp_sth;
     char *pq_call;
     dTHX;
-    
+
     if (TRACE5_slow) TRC(DBILOGFP, "%sHandling aa action\n", THEADER_slow);
-    
+
     aa = imp_dbh->aa_first;
     if (aa->after) aa->after(imp_dbh);
     async_action_done(imp_dbh);
@@ -238,7 +238,7 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
             imp_dbh->async_sth = NULL;
         }
     }
-    
+
     if (pq_call) {
         async_action_error(h, imp_dbh, imp_sth, our_call, pq_call);
         return -1;
@@ -5658,7 +5658,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
                 if (-1 == status) return -2;
                 continue;
             }
-            
+
             /* async prepare */
             imp_sth = imp_dbh->async_sth;
             if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
@@ -5823,7 +5823,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
         busy = 0;
-        
+
         if (imp_dbh->aa_first) {
             busy = 1;
 
