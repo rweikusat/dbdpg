@@ -5646,6 +5646,19 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 
             break;
         case PGRES_COMMAND_OK:
+            if (imp_dbh->aa_first) {
+                TRACE_PQCLEAR;
+                PQclear(result);
+
+                TRACE_PQGETRESULT;
+                result = PQgetResult(imp_dbh->conn);
+                if (result) croak("cannot handle intermediate queries with more than one result");
+
+                status = handle_async_action(h, imp_dbh, "pg_db_result");
+                if (-1 == status) return -2;
+                continue;
+            }
+            
             /* async prepare */
             imp_sth = imp_dbh->async_sth;
             if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
