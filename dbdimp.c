@@ -137,6 +137,31 @@ static void async_action_done(imp_dbh_t *imp_dbh)
     Safefree(aa);
 }
 
+static void async_action_error(SV *h, imp_dbh_t *imp_dbh, imp_sth_t *imp_sth,
+                               char *our_call, char *pq_call)
+{
+    dTHX;
+
+    if (strcmp(imp_dbh->sqlstate, "00000") != 0)
+        _fatal_sqlstate(aTHX_ imp_dbh);
+
+    if (imp_sth)
+        if (8 == imp_sth->async_flag) {
+            Safefree(imp_sth->statement);
+            Safefree(imp_sth);
+        } else
+            imp_sth->async_status = STH_NO_ASYNC;
+
+    imp_dbh->async_status = DBH_NO_ASYNC;
+    imp_dbh->async_sth = NULL;
+    while (imp_dbh->aa_first) async_action_done(imp_dbh);
+
+    TRACE_PQERRORMESSAGE;
+    pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
+    if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (error: %s failed)\n",
+                       THEADER_slow, our_call, pq_call);
+}
+
 static char *aa_send_query(imp_dbh_t *imp_dbh, char *qry)
 {
     dTHX;
@@ -5645,26 +5670,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, imp_sth_t *imp_sth,
                              char *pq_call)
 {
-    dTHX;
-
-    if (strcmp(imp_dbh->sqlstate, "00000") != 0)
-        _fatal_sqlstate(aTHX_ imp_dbh);
-
-    if (imp_sth)
-        if (8 == imp_sth->async_flag) {
-            Safefree(imp_sth->statement);
-            Safefree(imp_sth);
-        } else
-            imp_sth->async_status = STH_NO_ASYNC;
-
-    imp_dbh->async_status = DBH_NO_ASYNC;
-    imp_dbh->async_sth = NULL;
-    while (imp_dbh->aa_first) async_action_done(imp_dbh);
-
-    TRACE_PQERRORMESSAGE;
-    pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: %s failed)\n", THEADER_slow,
-                       pq_call);
+    async_action_error(h, imp_dbh, imp_sth, "pg_db_ready", pq_call);
     return -2;
 }
 
