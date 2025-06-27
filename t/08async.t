@@ -379,6 +379,8 @@ is ($res, 2, $t);
 }
 
 {
+    DBI->trace(15);
+    
     $t=q{Database method pg_result returns cancelled after query with prep statments was cancelled};
     $dbh->{AutoCommit} = 0;
     $dbh->{ReadOnly} = 1;
@@ -389,8 +391,10 @@ is ($res, 2, $t);
     is(0+$rows, 0, $t);
     is($dbh->state(), '57014', $t);
 
-    $dbh->do('rollback');
+    $dbh->rollback();
     $dbh->{AutoCommit} = 1;
+
+    DBI->trace(0);
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
