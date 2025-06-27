@@ -137,14 +137,16 @@ static void async_action_done(imp_dbh_t *imp_dbh)
     Safefree(aa);
 }
 
-static void async_action_error(SV *h, imp_dbh_t *imp_dbh, imp_sth_t *imp_sth,
+static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
                                char *our_call, char *pq_call)
 {
+    imp_sth_t *imp_sth;
     dTHX;
 
     if (strcmp(imp_dbh->sqlstate, "00000") != 0)
         _fatal_sqlstate(aTHX_ imp_dbh);
 
+    imp_sth = imp_dbh->async_sth;
     if (imp_sth)
         if (8 == imp_sth->async_flag) {
             Safefree(imp_sth->statement);
@@ -240,7 +242,7 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
     }
 
     if (pq_call) {
-        async_action_error(h, imp_dbh, imp_sth, our_call, pq_call);
+        async_action_error(h, imp_dbh, our_call, pq_call);
         return -1;
     }
 
@@ -5765,10 +5767,9 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
    0 if the query is still running
    -2 for other errors
 */
-static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, imp_sth_t *imp_sth,
-                             char *pq_call)
+static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, char *pq_call)
 {
-    async_action_error(h, imp_dbh, imp_sth, "pg_db_ready", pq_call);
+    async_action_error(h, imp_dbh, "pg_db_ready", pq_call);
     return -2;
 }
 
@@ -5817,7 +5818,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
     TRACE_PQCONSUMEINPUT;
     if (!PQconsumeInput(imp_dbh->conn))
-        return pg_db_ready_error(h, imp_dbh, imp_dbh->async_sth, "PQconsumeInput");
+        return pg_db_ready_error(h, imp_dbh, "PQconsumeInput");
 
     busy = 1;
     TRACE_PQISBUSY;
@@ -5828,7 +5829,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
             busy = 1;
 
             status = handle_between_result(imp_dbh);
-            if (PGRES_COMMAND_OK != status) return pg_db_ready_error(h, imp_dbh, imp_dbh->async_sth,
+            if (PGRES_COMMAND_OK != status) return pg_db_ready_error(h, imp_dbh, 
                                                                      STH_ASYNC_PREPARE == imp_dbh->async_sth->async_status ?
                                                                      "PQsendPrepare" : "PQsendQuery");
 
