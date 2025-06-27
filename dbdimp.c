@@ -137,14 +137,9 @@ static void async_action_done(imp_dbh_t *imp_dbh)
     Safefree(aa);
 }
 
-static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
-                               char *our_call, char *pq_call)
+static void async_action_cleanup(imp_dbh_t *imp_dbh)
 {
     imp_sth_t *imp_sth;
-    dTHX;
-
-    if (strcmp(imp_dbh->sqlstate, "00000") != 0)
-        _fatal_sqlstate(aTHX_ imp_dbh);
 
     imp_sth = imp_dbh->async_sth;
     if (imp_sth)
@@ -157,6 +152,17 @@ static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
     imp_dbh->async_status = DBH_NO_ASYNC;
     imp_dbh->async_sth = NULL;
     while (imp_dbh->aa_first) async_action_done(imp_dbh);
+}
+
+static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
+                               char *our_call, char *pq_call)
+{
+    dTHX;
+
+    if (strcmp(imp_dbh->sqlstate, "00000") != 0)
+        _fatal_sqlstate(aTHX_ imp_dbh);
+
+    async_action_cleanup(imp_dbh);
 
     TRACE_PQERRORMESSAGE;
     pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
