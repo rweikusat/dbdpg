@@ -378,6 +378,9 @@ is ($res, 2, $t);
     $dbh->pg_cancel();
     my $rows = $dbh->pg_result();
     is(0+$rows, 0, $t);
+
+    $dbh->do('rollback');
+    $dbh->{AutoCommit} = 1;
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
