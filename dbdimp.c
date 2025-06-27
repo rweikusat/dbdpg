@@ -80,7 +80,8 @@ enum {
 enum {        
 	STH_NO_ASYNC,
 	STH_ASYNC,
-        STH_ASYNC_PREPARE
+        STH_ASYNC_PREPARE,
+        STH_ASYNC_CANCELLED
 };
 
 static void pg_error(pTHX_ SV *h, int error_num, const char *error_msg);
@@ -228,6 +229,15 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
     aa = imp_dbh->aa_first;
     if (aa->after) aa->after(imp_dbh);
     async_action_done(imp_dbh);
+
+    imp_sth = imp_dbh->async_sth;
+    if (STH_ASYNC_CANCELLED == imp_sth->async_status) {
+        if (TRACE5_slow) TRC(DBILOGFP, "%sQuery cancelled\n", THEADER_slow);
+
+        async_action_cleanup(imp_dbh);
+        strcpy(imp_dbh->sqlstate, SQLST_CANCELLED);
+        return -2;
+    }
 
     pq_call = NULL;
     aa = imp_dbh->aa_first;
@@ -5667,8 +5677,16 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
                 result = PQgetResult(imp_dbh->conn);
                 if (result) croak("cannot handle intermediate queries with more than one result");
 
-                status = handle_async_action(h, imp_dbh, "pg_db_result");
-                if (-1 == status) return -2;
+                rows = handle_async_action(h, imp_dbh, "pg_db_result");
+                if (-1 == rows) { /* error */
+                    rows = -2;
+                    break;
+                }
+                if (-2 == rows) { /* cancelled */
+                    rows = 0;
+                    break;
+                }
+
                 continue;
             }
 
@@ -5718,6 +5736,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
             break;
         case PGRES_FATAL_ERROR:
             if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
+                async_action_cleanup(imp_dbh);
                 rows = 0;
                 break;
             }
@@ -5894,6 +5913,8 @@ int pg_db_cancel(SV *h, imp_dbh_t *imp_dbh)
     }
     TRACE_PQFREECANCEL;
     PQfreeCancel(cancel);
+
+    if (imp_dbh->async_sth) imp_dbh->async_sth->async_status = STH_ASYNC_CANCELLED;
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_cancel\n", THEADER_slow);
     return DBDPG_TRUE;
