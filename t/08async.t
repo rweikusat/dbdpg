@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 64;
+plan tests => 65;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -378,6 +378,7 @@ is ($res, 2, $t);
     $dbh->pg_cancel();
     my $rows = $dbh->pg_result();
     is(0+$rows, 0, $t);
+    is($dbh->state*(), '57014', $t);
 
     $dbh->do('rollback');
     $dbh->{AutoCommit} = 1;
