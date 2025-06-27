@@ -387,7 +387,7 @@ is ($res, 2, $t);
     $dbh->pg_cancel();
     my $rows = $dbh->pg_result();
     is(0+$rows, 0, $t);
-    is($dbh->state*(), '57014', $t);
+    is($dbh->state(), '57014', $t);
 
     $dbh->do('rollback');
     $dbh->{AutoCommit} = 1;
