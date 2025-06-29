@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 66;
+plan tests => 68;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -391,6 +391,25 @@ is ($res, 2, $t);
 
     $dbh->rollback();
     $dbh->{AutoCommit} = 1;
+}
+
+{
+    $t=q{Using pg_ready & pg_result works correctly for cancelled query with prep statements};
+    $dbh->{AutoCommit} = 0;
+    $dbh->{ReadOnly} = 1;
+    my $sth = $dbh->prepare('select 123', { pg_async => 1});
+    $sth->execute();
+    $dbh->pg_cancel();
+    
+    my $rin;
+    do {
+        vec($rin, $$dbh{pg_socket}, 1);
+        select($rin, undef, undef, undef);
+    } while !$dbh->pg_ready;
+
+    my $rows = $dbh->_result();
+    is(0+$rows, 0, $t);
+    is($$dbh{state}, '57014', $t);
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
