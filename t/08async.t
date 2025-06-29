@@ -394,6 +394,8 @@ is ($res, 2, $t);
 }
 
 {
+    DBI->trace(15);
+    
     $t=q{Using pg_ready & pg_result works correctly for cancelled query with prep statements};
     $dbh->{AutoCommit} = 0;
     $dbh->{ReadOnly} = 1;
@@ -402,14 +404,18 @@ is ($res, 2, $t);
     $dbh->pg_cancel();
     
     my $rin;
-    do {
-        vec($rin, $$dbh{pg_socket}, 1);
+    while (!$dbh->pg_ready()) {
+        vec($rin, $$dbh{pg_socket}, 1) = 1;
         select($rin, undef, undef, undef);
-    } while !$dbh->pg_ready;
+    }
 
-    my $rows = $dbh->_result();
+    my $rows = $dbh->pg_result();
     is(0+$rows, 0, $t);
     is($$dbh{state}, '57014', $t);
+
+    DBI->trace(0);
+    $dbh->rollback();
+    $$dbh{AutoCommit} = 1;
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
