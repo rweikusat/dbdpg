@@ -74,7 +74,8 @@ enum {
 	DBH_NO_ASYNC,
 	DBH_ASYNC,
 	DBH_ASYNC_CONNECT,
-        DBH_ASYNC_CONNECT_POLL
+        DBH_ASYNC_CONNECT_POLL,
+        DBH_ASYNC_CANCELLING
 };
 
 enum {        
@@ -5643,7 +5644,16 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_result\n", THEADER_slow);
 
-    if (DBH_ASYNC != imp_dbh->async_status) {
+    switch (imp_dbh->async_status) {
+    case DBH_ASYNC:
+        break;
+
+    case DBH_ASYNC_CANCELLING:
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (query cancelled)\n", THEADER_slow);
+        imp_dbh->async_status = DBH_NO_ASYNC;
+        return 0;
+
+    default:
         pg_error(aTHX_ h, PGRES_FATAL_ERROR, "No asynchronous query is running\n");
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (error: no async)\n", THEADER_slow);
         return -2;
@@ -5824,7 +5834,7 @@ static int handle_between_result(imp_dbh_t *imp_dbh)
 int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 {
     char *pg_call;
-    int busy, status;
+    int ret, status;
     dTHX;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_ready (async status: %d)\n",
@@ -5849,26 +5859,36 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (!PQconsumeInput(imp_dbh->conn))
         return pg_db_ready_error(h, imp_dbh, "PQconsumeInput");
 
-    busy = 1;
+    ret = 0;
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
-        busy = 0;
+        ret = 1;
 
         if (imp_dbh->aa_first) {
-            busy = 1;
-
             status = handle_between_result(imp_dbh);
             if (PGRES_COMMAND_OK != status) return pg_db_ready_error(h, imp_dbh, 
                                                                      STH_ASYNC_PREPARE == imp_dbh->async_sth->async_status ?
                                                                      "PQsendPrepare" : "PQsendQuery");
 
             status = handle_async_action(h, imp_dbh, "pg_db_ready");
-            if (-1 == status) return -2;
+            switch (status) {
+            case 0:
+                ret = 0;
+                break;
+                
+            case -1:
+                ret = -2;
+                break;
+
+            case -2:
+                ret = 1;
+                imp_dbh->async_status = DBH_ASYNC_CANCELLING;
+            }
         }
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready\n", THEADER_slow);
-    return !busy;
+    return ret;
 } /* end of pg_db_ready */
 
 
