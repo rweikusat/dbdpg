@@ -394,8 +394,6 @@ is ($res, 2, $t);
 }
 
 {
-    DBI->trace(15);
-    
     $t=q{Using pg_ready & pg_result works correctly for cancelled query with prep statements};
     $dbh->{AutoCommit} = 0;
     $dbh->{ReadOnly} = 1;
@@ -411,9 +409,8 @@ is ($res, 2, $t);
 
     my $rows = $dbh->pg_result();
     is(0+$rows, 0, $t);
-    is($$dbh{state}, '57014', $t);
+    is($dbh->state(), '57014', $t);
 
-    DBI->trace(0);
     $dbh->rollback();
     $$dbh{AutoCommit} = 1;
 }
