@@ -4192,21 +4192,6 @@ not done automatically.
 
   $result = $dbh->pg_cancel();
 
-B<BUGS>: In certain situations, the database driver may issue
-asynchronous commands to the server behind the back of an
-application. Specifically, it may issue an asynchronous prepare when
-a statement which hasn't yet been prepared on the server-side is
-executed more than once and it may issue asychronous transaction setup
-commands when executing (both via C<do> and C<execute>) a statement
-asynchronously and C<AutoCommit> is off. This implies that a cancel
-request may either hit the prepare or any of the transaction setup
-commands and presently, there's no support in the code for this.
-
-For defined behaviour, C<pg_cancel> must only be used for statements
-which have been prepared on the server-side already (eg, by enabling
-C<pg_prepare_now> for the C<prepare> call) and with C<AutoCommit>
-enabled.
-
 =item B<pg_ready>
 
 This method can be called as a database handle method or (for convenience) as a statement handle method. Both simply
