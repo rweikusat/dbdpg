@@ -5875,7 +5875,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
             case 0:
                 ret = 0;
                 break;
-                
+
             case -1:
                 ret = -2;
                 break;
