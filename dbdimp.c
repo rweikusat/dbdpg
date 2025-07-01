@@ -85,6 +85,12 @@ enum {
         STH_ASYNC_CANCELLED
 };
 
+enum {
+    AA_OK,
+    AA_ERROR,
+    AA_CANCELLED
+};
+
 static void pg_error(pTHX_ SV *h, int error_num, const char *error_msg);
 static void pg_warn (void * arg, const char * message);
 static ExecStatusType _result(pTHX_ imp_dbh_t *imp_dbh, const char *sql);
@@ -237,7 +243,7 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
 
         async_action_cleanup(imp_dbh);
         strcpy(imp_dbh->sqlstate, SQLST_CANCELLED);
-        return -2;
+        return AA_CANCELLED;
     }
 
     pq_call = NULL;
@@ -260,10 +266,10 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
 
     if (pq_call) {
         async_action_error(h, imp_dbh, our_call, pq_call);
-        return -1;
+        return AA_ERROR;
     }
 
-    return 0;
+    return AA_OK;
 }
 
 static char *aa_send_query(imp_dbh_t *imp_dbh, char *qry)
@@ -5688,11 +5694,11 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
                 if (result) croak("cannot handle intermediate queries with more than one result");
 
                 rows = handle_async_action(h, imp_dbh, "pg_db_result");
-                if (-1 == rows) { /* error */
+                if (AA_ERROR == rows) {
                     rows = -2;
                     break;
                 }
-                if (-2 == rows) { /* cancelled */
+                if (AA_CANCELLED == rows) {
                     rows = 0;
                     break;
                 }
@@ -5872,15 +5878,15 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 
             status = handle_async_action(h, imp_dbh, "pg_db_ready");
             switch (status) {
-            case 0:
+            case AA_OK:
                 ret = 0;
                 break;
 
-            case -1:
+            case AA_ERROR:
                 ret = -2;
                 break;
 
-            case -2:
+            case AA_CANCELLED:
                 ret = 1;
                 imp_dbh->async_status = DBH_ASYNC_CANCELLING;
             }
