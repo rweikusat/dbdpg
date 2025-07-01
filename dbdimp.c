@@ -5840,7 +5840,7 @@ static int handle_between_result(imp_dbh_t *imp_dbh)
 int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 {
     char *pg_call;
-    int ret, status;
+    int rc;
     dTHX;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_ready (async status: %d)\n",
@@ -5865,36 +5865,36 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (!PQconsumeInput(imp_dbh->conn))
         return pg_db_ready_error(h, imp_dbh, "PQconsumeInput");
 
-    ret = 0;
+    rc = 0;
     TRACE_PQISBUSY;
     if (!PQisBusy(imp_dbh->conn)) {
-        ret = 1;
+        rc = 1;
 
         if (imp_dbh->aa_first) {
-            status = handle_between_result(imp_dbh);
-            if (PGRES_COMMAND_OK != status) return pg_db_ready_error(h, imp_dbh, 
-                                                                     STH_ASYNC_PREPARE == imp_dbh->async_sth->async_status ?
-                                                                     "PQsendPrepare" : "PQsendQuery");
+            rc = handle_between_result(imp_dbh);
+            if (PGRES_COMMAND_OK != rc) return pg_db_ready_error(h, imp_dbh, 
+                                                                 STH_ASYNC_PREPARE == imp_dbh->async_sth->async_status ?
+                                                                 "PQsendPrepare" : "PQsendQuery");
 
-            status = handle_async_action(h, imp_dbh, "pg_db_ready");
-            switch (status) {
+            rc = handle_async_action(h, imp_dbh, "pg_db_ready");
+            switch (rc) {
             case AA_OK:
-                ret = 0;
+                rc = 0;
                 break;
 
             case AA_ERROR:
-                ret = -2;
+                rc = -2;
                 break;
 
             case AA_CANCELLED:
-                ret = 1;
+                rc = 1;
                 imp_dbh->async_status = DBH_ASYNC_CANCELLING;
             }
         }
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready\n", THEADER_slow);
-    return ret;
+    return rc;
 } /* end of pg_db_ready */
 
 
