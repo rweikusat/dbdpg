@@ -22,8 +22,8 @@ eval {
 };
 
 my @pm_files = qw{
-Pg.pm
-lib/Bundle/DBD/Pg.pm
+PgAsync.pm
+lib/Bundle/DBD/PgAsync.pm
 t/lib/App/Info.pm
 t/lib/App/Info/RDBMS/PostgreSQL.pm
 t/lib/App/Info/Util.pm
