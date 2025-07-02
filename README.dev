@@ -64,7 +64,6 @@ README.dev - you are reading it.
 README - short description of the differences between this fork and
  the DBD::Pg module.
 
-
 README.DBD::Pg - original DBD::Pg README. The main file that explains
   the module, where to get it, and guides people in installing it. A
   large portion of it is simply a list of common gotchas and guides
