@@ -134,6 +134,10 @@ for my $filename (sort @testfiles) {
         ## Skip included file package warning
         next if $policy =~ /RequireExplicitPackage/ and $filename =~ /setup/;
 
+        ## Ignore 'stupid' policies violated by existing test code
+        next if $policy =~ /ProhibitReusedNames/;
+        next if $policy =~ /ProhibitUnlessBlocks/;
+
         $vios++;
         my $l = $v->location();
         my $line = $l->[0];
