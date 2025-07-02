@@ -400,7 +400,7 @@ is ($res, 2, $t);
     my $sth = $dbh->prepare('select 123', { pg_async => 1});
     $sth->execute();
     $dbh->pg_cancel();
-    
+
     my $rin;
     while (!$dbh->pg_ready()) {
         vec($rin, $$dbh{pg_socket}, 1) = 1;
