@@ -48,16 +48,12 @@ ok (@testfiles, 'Found files in test directory');
 ##
 my $file = 'README.dev';
 open my $fh, '<', $file or die qq{Could not open "$file": $!\n};
-my $point = 1;
 my %devfile;
-while (<$fh>) {
+1 while defined($_ = <$fh>) && !/File List/;
+
+while (defined($_ = <$fh>) && !/= Compiling/) {
     chomp;
-    if (1 == $point) {
-        next unless /File List/;
-        $point = 2;
-        next;
-    }
-    last if /= Compiling/;
+
     if (m{^([\w\./-]+) \- }) {
         $devfile{$1} = $.;
         next;
