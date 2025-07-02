@@ -30,3 +30,16 @@ sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
+
+
+Debian Package
+--------------
+
+Because development happens on Debian (Devuan, actually, but that's an
+unimportant detail), there's support for creating a Debian package of
+the driver. This has only been tested Devuan daedalus (Debian 12
+based) and the only tested way to build the package is executing
+
+fakeroot debian/rules binary
+
+in the top-level distribution directory.
