@@ -41,7 +41,7 @@ $t='Quoting works with a function call';
 # way described in https://rt.cpan.org/Ticket/Display.html?id=4996.
 sub checkquote {
     my $str = shift;
-    is ($dbh->quote(substr($str, 0, 10)), "'$str'", $t);
+    return is ($dbh->quote(substr($str, 0, 10)), "'$str'", $t);
 }
 
 checkquote('one');
