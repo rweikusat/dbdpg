@@ -1,5 +1,5 @@
 
-package Bundle::DBD::PgASync;
+package Bundle::DBD::PgAsync;
 
 use strict;
 use warnings;
