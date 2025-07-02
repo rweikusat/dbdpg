@@ -71,16 +71,16 @@ typedef enum
      SvRMAGICAL(SvRV(h)) && (SvMAGIC(SvRV(h)))->mg_type == 'P')
 
 enum {
-	DBH_NO_ASYNC,
-	DBH_ASYNC,
-	DBH_ASYNC_CONNECT,
+        DBH_NO_ASYNC,
+        DBH_ASYNC,
+        DBH_ASYNC_CONNECT,
         DBH_ASYNC_CONNECT_POLL,
         DBH_ASYNC_CANCELLING
 };
 
 enum {        
-	STH_NO_ASYNC,
-	STH_ASYNC,
+        STH_NO_ASYNC,
+        STH_ASYNC,
         STH_ASYNC_PREPARE,
         STH_ASYNC_CANCELLED
 };
@@ -304,14 +304,14 @@ static void aa_after_prepare(imp_dbh_t *imp_dbh)
 /* ================================================================== */
 static int want_async_connect(pTHX_ SV *attrs)
 {
-	HV *hv;
-	SV **psv, *sv;
+        HV *hv;
+        SV **psv, *sv;
 
-	return
-		attrs
-		&& (psv = hv_fetchs((HV *)SvRV(attrs), "pg_async_connect", 0))
-		&& (sv = *psv)
-		&& SvTRUE(sv);
+        return
+                attrs
+                && (psv = hv_fetchs((HV *)SvRV(attrs), "pg_async_connect", 0))
+                && (sv = *psv)
+                && SvTRUE(sv);
 }
 
 static void after_connect_init(pTHX_ SV *dbh, imp_dbh_t * imp_dbh)
@@ -3551,9 +3551,9 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
 /* ================================================================== */
 /* Return value <= -2:error, >=0:ok row count, (-1=unknown count) */
 static char *pq_x_calls[][2] = {
-    [PQTYPE_EXEC] =		{ "PQexec",		"PQsendQuery" },
-    [PQTYPE_PARAMS] =		{ "PQexecParams",	"PQsendQueryParams" },
-    [PQTYPE_PREPARED] =		{ "PQexecPrepared",	"PQsendQueryPrepared" }
+    [PQTYPE_EXEC] =             { "PQexec",             "PQsendQuery" },
+    [PQTYPE_PARAMS] =           { "PQexecParams",       "PQsendQueryParams" },
+    [PQTYPE_PREPARED] =         { "PQexecPrepared",     "PQsendQueryPrepared" }
 };
 
 long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)

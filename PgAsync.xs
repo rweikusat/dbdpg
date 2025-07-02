@@ -336,10 +336,10 @@ quote(dbh, to_quote_sv, type_sv=Nullsv)
 # Primarily for unit test...
 bool
 _is_keyword(const char *str)
-	CODE:
-		RETVAL = is_keyword(str);
-	OUTPUT:
-		RETVAL
+        CODE:
+                RETVAL = is_keyword(str);
+        OUTPUT:
+                RETVAL
 
 # ------------------------------------------------------------
 # database level interface PG specific
@@ -847,11 +847,11 @@ _pg_type_info (type_sv=Nullsv)
 
 int
 pg_continue_connect(dbh)
-		SV* dbh
-	CODE:
-		RETVAL = pg_db_continue_connect(dbh);
-	OUTPUT:
-		RETVAL
+                SV* dbh
+        CODE:
+                RETVAL = pg_db_continue_connect(dbh);
+        OUTPUT:
+                RETVAL
 
 void
 pg_result(dbh)
