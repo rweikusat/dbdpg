@@ -15,7 +15,7 @@ if (! $ENV{AUTHOR_TESTING}) {
 }
 
 $ENV{LANG} = 'C';
-find (sub { push @cfiles      => $File::Find::name if /^[^.].+\.c$/ and $_ ne 'Pg.c' and $File::Find::dir !~ /tmp/; }, '.');
+find (sub { push @cfiles      => $File::Find::name if /^[^.].+\.c$/ and $_ ne 'PgAsync.c' and $File::Find::dir !~ /tmp/; }, '.');
 find (sub { push @headerfiles => $File::Find::name if /^[^.].+\.h$/ and $_ ne 'dbivport.h' and $File::Find::dir !~ /tmp/; }, '.');
 find (sub { push @testfiles   => $File::Find::name if /^[^.]\w+\.(t|pl)$/; }, 't');
 find (sub { push @perlfiles   => $File::Find::name if /^[^.].+\.(pm|pl|t)$/ and $File::Find::dir !~ /tmp/; }, '.');
