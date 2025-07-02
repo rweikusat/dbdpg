@@ -93,7 +93,7 @@ for my $file (sort keys %manfile) {
 ##
 ## Everything in README.dev should also be in MANIFEST, except special files
 ##
-my %derived = map { $_, 1 } qw/Makefile Pg.c README.testdatabase dbdpg_test_database dbdpg_test_postgres_versions.pl/;
+my %derived = map { $_, 1 } qw/Makefile PgAsync.c README.testdatabase dbdpg_test_database dbdpg_test_postgres_versions.pl/;
 for my $file (sort keys %devfile) {
     if (!exists $manfile{$file} and !exists $derived{$file}) {
         fail qq{File "$file" is in README.dev but not in MANIFEST\n};
