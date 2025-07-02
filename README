@@ -31,6 +31,13 @@ principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
 
+Present status
+--------------
+
+WIP to get this cleaned up for CPAN release. AFAICT, the code for this
+is complete and working but it still fails some of the automated
+style tests.
+
 
 Debian Package
 --------------
