@@ -937,7 +937,7 @@ eval {
     $sth->bind_param($_, $vals->{$_}, $types->{$_} )
         for keys %$types;
 };
-is( $@, q{}, $t);
+is ($@, q{}, $t);
 
 $t='Statement handle attribute "ParamTypes" works before execute with named placeholders';
 $sth = $dbh->prepare('SELECT id FROM dbd_pg_test WHERE id=:foobar AND val=:foobar2 AND lii=:foobar3');
@@ -954,7 +954,7 @@ eval {
     $sth->bind_param($_, $vals->{$_}, $types->{$_} )
         for keys %$types;
 };
-is( $@, q{}, $t);
+is ($@, q{}, $t);
 
 $t='Statement handle attribute "ParamTypes" works after execute';
 $sth->bind_param(':foobar3', 3, {pg_type => PG_INT2});
@@ -1606,12 +1606,12 @@ SKIP: {
     $t='Database handle attribute "ReadOnly" prevents INSERT queries from working when on';
     $SQL = 'INSERT INTO dbd_pg_test (id) VALUES (50)';
     eval { $dbh4->do($SQL); };
-    is($dbh4->state, '25006', $t);
+    is ($dbh4->state, '25006', $t);
     $dbh4->rollback();
 
     $sth = $dbh4->prepare($SQL);
     eval { $sth->execute(); };
-    is($dbh4->state, '25006', $t);
+    is ($dbh4->state, '25006', $t);
     $dbh4->rollback();
 
     $t='Database handle attribute "ReadOnly" allows INSERT queries when switched off';
@@ -1710,10 +1710,10 @@ SKIP: {
         }
         else {
             $t=qq{Ping fails after the child has exited ("AutoInactiveDestroy" = $destroy)};
-            is ( $dbh->ping(), 0, $t);
+            is ($dbh->ping(), 0, $t);
 
             $t=qq{pg_ping gives an error code of -2 after the child has exited ("AutoInactiveDestroy" = $destroy)};
-            is ( $dbh->pg_ping(), -2, $t);
+            is ($dbh->pg_ping(), -2, $t);
             ok ($dbh->disconnect(), 'Disconnect from database');
         }
     }
@@ -1779,10 +1779,10 @@ SKIP: {
         }
         else {
             $t=qq{Ping fails after the child has exited ("InactiveDestroy" = $destroy)};
-            is ( $dbh->ping(), 0, $t);
+            is ($dbh->ping(), 0, $t);
 
             $t=qq{pg_ping gives an error code of -2 after the child has exited ("InactiveDestroy" = $destroy)};
-            is ( $dbh->pg_ping(), -2,$t);
+            is ($dbh->pg_ping(), -2,$t);
         }
     }
 }

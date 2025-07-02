@@ -125,11 +125,11 @@ foreach (@tests) {
                     : encode_utf8($want);
             }
 
-            is(utf8::is_utf8($test->{sql}), ($state eq 'upgraded'), "$desc query has correct flag")
+            is (utf8::is_utf8($test->{sql}), ($state eq 'upgraded'), "$desc query has correct flag")
                 if $test->{qtype} =~ /^interpolated/;
             if ($state ne 'mixed') {
                 foreach my $arg (map { ref($_) ? @{$_} : $_ } @args) { ## no critic
-                    is(utf8::is_utf8($arg), ($state eq 'upgraded'), "$desc arg has correct flag")
+                    is (utf8::is_utf8($arg), ($state eq 'upgraded'), "$desc arg has correct flag")
                 }
             }
             $dbh->{pg_enable_utf8} = $enable_utf8;
@@ -242,7 +242,7 @@ for my $name ('LATIN CAPITAL LETTER N',
             # We asked for UTF-8 octets to arrive in Perl-space.
             # Check this, and convert them to character(s).
             # If we didn't, the next two tests are meaningless, so skip them.
-            is(utf8::decode($result), 1, "Got valid UTF-8 for $desc")
+            is (utf8::decode($result), 1, "Got valid UTF-8 for $desc")
                 or next;
         }
         is (length $result, 1, "Got 1 character for $desc");

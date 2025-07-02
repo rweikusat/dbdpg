@@ -518,7 +518,7 @@ for my $test (split /\n\n/ => $array_tests_out) {
     else {
         $expected = eval $expected;
         ## is_deeply does not handle type differences
-        is ( (Dumper $result), (Dumper $expected), $t);
+        is ((Dumper $result), (Dumper $expected), $t);
     }
 }
 

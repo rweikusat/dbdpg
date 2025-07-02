@@ -828,7 +828,7 @@ $sth->finish;
     my $i = 0;
     $sth->execute(map { $i++, $_ } @strings);
     while (my $row = $sth->fetchrow_arrayref) {
-        is(length($row->[1]), length(shift(@strings)), 'Perl length() of returned string');
+        is (length($row->[1]), length(shift(@strings)), 'Perl length() of returned string');
     }
     $sth->finish;
 }

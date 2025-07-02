@@ -46,62 +46,62 @@ is ($result, undef, $t);
 $t = 'Constant PG_MIN_SMALLINT returns expected value of -32768';
 my $sth = $dbh->prepare('SELECT ?::smallint');
 $sth->execute(PG_MIN_SMALLINT);
-is ( $sth->fetch->[0], -32768, $t);
+is ($sth->fetch->[0], -32768, $t);
 
 $t = 'Trying to fit one less than PG_MIN_SMALLINT into a smallint returns expected error';
 eval { $sth->execute(PG_MIN_SMALLINT-1) };
-is ( $dbh->state, '22003', $t);
+is ($dbh->state, '22003', $t);
 $dbh->rollback();
 
 $t = 'Constant PG_MAX_SMALLINT returns expected value of 32767';
 $sth->execute(PG_MAX_SMALLINT);
-is ( $sth->fetch->[0], 32767, $t);
+is ($sth->fetch->[0], 32767, $t);
 
 $t = 'Trying to fit one more than PG_MAX_SMALLINT into a smallint returns expected error';
 eval { $sth->execute(PG_MAX_SMALLINT+1) };
-is ( $dbh->state, '22003', $t);
+is ($dbh->state, '22003', $t);
 $dbh->rollback();
 
 $t = 'Constant PG_MIN_INTEGER returns expected value of -2147483648';
 $sth = $dbh->prepare('SELECT ?::integer');
 $sth->execute(PG_MIN_INTEGER);
-is ( $sth->fetch->[0], -2147483648, $t);
+is ($sth->fetch->[0], -2147483648, $t);
 
 $t = 'Trying to fit one less than PG_MIN_INTEGER into an int returns expected error';
 eval { $sth->execute(PG_MIN_INTEGER-1) };
-is ( $dbh->state, '22003', $t);
+is ($dbh->state, '22003', $t);
 $dbh->rollback();
 
 $t = 'Constant PG_MAX_INTEGER returns expected value of 2147483647';
 $sth->execute(PG_MAX_INTEGER);
-is ( $sth->fetch->[0], 2147483647, $t);
+is ($sth->fetch->[0], 2147483647, $t);
 
 $t = 'Trying to fit one more than PG_MAX_INTEGER into an int returns expected error';
 eval { $sth->execute(PG_MAX_INTEGER+1) };
-is ( $dbh->state, '22003', $t);
+is ($dbh->state, '22003', $t);
 $dbh->rollback();
 
 $t = 'Constant PG_MIN_BIGINT returns expected value of -9223372036854775808';
 $sth = $dbh->prepare('SELECT ?::bigint');
 $sth->execute(PG_MIN_BIGINT);
-is ( $sth->fetch->[0], '-9223372036854775808', $t);
+is ($sth->fetch->[0], '-9223372036854775808', $t);
 
 $t = 'Trying to fit one less than PG_MIN_BIGINT into a bigint returns expected error';
 ## Unlike the others, we cannot modify Perl side in case of a 32-bit system
 $sth = $dbh->prepare('SELECT ?::bigint-1');
 eval { $sth->execute(PG_MIN_BIGINT) };
-is ( $dbh->state, '22003', $t);
+is ($dbh->state, '22003', $t);
 $dbh->rollback();
 
 $t = 'Constant PG_MAX_BIGINT returns expected value of 9223372036854775807';
 $sth = $dbh->prepare('SELECT ?::bigint');
 $sth->execute(PG_MAX_BIGINT);
-is ( $sth->fetch->[0], '9223372036854775807', $t);
+is ($sth->fetch->[0], '9223372036854775807', $t);
 
 $t = 'Trying to fit one more than PG_MAX_BIGINT into a bigint returns expected error';
 $sth = $dbh->prepare('SELECT ?::bigint+1');
 eval { $sth->execute(PG_MAX_BIGINT) };
-is ( $dbh->state, '22003', $t);
+is ($dbh->state, '22003', $t);
 $dbh->rollback();
 
 $t = 'Constant PG_MIN_SMALLSERIAL is set to 1';
@@ -110,21 +110,21 @@ is (PG_MIN_SMALLSERIAL, 1, $t);
 $t = 'Constant PG_MAX_SMALLSERIAL returns expected value of 32767 (same as PG_MAX_SMALLINT)';
 $sth = $dbh->prepare('SELECT ?::bigint');
 $sth->execute(PG_MAX_SMALLSERIAL);
-is ( $sth->fetch->[0], 32767, $t);
+is ($sth->fetch->[0], 32767, $t);
 
 $t = 'Constant PG_MIN_SERIAL is set to 1';
 is (PG_MIN_SERIAL, 1, $t);
 
 $t = 'Constant PG_MAX_SERIAL returns expected value of 2147483647 (same as PG_MAX_INTEGER)';
 $sth->execute(PG_MAX_SERIAL);
-is ( $sth->fetch->[0], 2147483647, $t);
+is ($sth->fetch->[0], 2147483647, $t);
 
 $t = 'Constant PG_MIN_BIGSERIAL is set to 1';
 is (PG_MIN_BIGSERIAL, 1, $t);
 
 $t = 'Constant PG_MAX_BIGSERIAL returns expected value of 9223372036854775807 (same as PG_MAX_BIGINT)';
 $sth->execute(PG_MAX_BIGSERIAL);
-is ( $sth->fetch->[0], '9223372036854775807', $t);
+is ($sth->fetch->[0], '9223372036854775807', $t);
 
 $t='Method "server_trace_flag" returns undef on bogus argument';
 is ($num, undef, $t);
@@ -216,7 +216,7 @@ $BC$
 
     $sth = $dbh->prepare('SELECT * FROM dbdpg_test_error_handler( ? )');
 
-    is( $sth->err, undef, q{Statement attribute 'err' is initially undef});
+    is ($sth->err, undef, q{Statement attribute 'err' is initially undef});
 
     $dbh->do(q{SET client_min_messages = 'ERROR'});
 
@@ -225,24 +225,24 @@ $BC$
 
         for my $level (qw/notice warning/) {
             $sth->execute($level);
-            is( $sth->err, 6, qq{Statement attribute 'err' set to 6 for level $level});
+            is ($sth->err, 6, qq{Statement attribute 'err' set to 6 for level $level});
         }
     }
 
     for my $level (qw/exception/) {
         eval { $sth->execute($level);};
-        is( $sth->err, 7, qq{Statement attribute 'err' set to 7 for level $level});
+        is ($sth->err, 7, qq{Statement attribute 'err' set to 7 for level $level});
         $dbh->rollback;
     }
 
     for my $level (qw/normal/) {
         $sth->execute($level);
-        is( $sth->err, undef, q{Statement attribute 'err' set to undef when no notices raised});
+        is ($sth->err, undef, q{Statement attribute 'err' set to undef when no notices raised});
     }
 
     $sth->finish;
 
-    is( $sth->err, undef, q{Statement attribute 'err' set to undef after statement finishes});
+    is ($sth->err, undef, q{Statement attribute 'err' set to undef after statement finishes});
 
     $dbh->do('DROP FUNCTION dbdpg_test_error_handler(TEXT)') or die $dbh->errstr;
     $dbh->do('SET client_min_messages = NOTICE');
@@ -618,7 +618,7 @@ for my $ph (1..13) {
     $sth = $dbh->prepare($sql);
     my @arr = (1..$total);
     my $count = $sth->execute(@arr);
-    is $count, 1, $t;
+    is ($count, 1, $t);
     $sth->finish();
 }
 
@@ -639,7 +639,7 @@ my $SQL = 'SELECT char4 FROM tt';
 $result = $dbh->selectall_arrayref($SQL)->[0][0];
 
 $t = q{Using bind_param with type 1 yields a correct bpchar value};
-is( $result, '0301', $t);
+is ($result, '0301', $t);
 
 $dbh->{AutoCommit} = 1;
 $t = q{Cloned database handle inherits the changed AutoCommit value};

@@ -419,7 +419,7 @@ eval {
     $dbh->pg_putcopydata($copydata);
     $dbh->pg_putcopyend;
 };
-is $@, '', 'pg_putcopydata in binary mode works'
+is ($@, '', 'pg_putcopydata in binary mode works')
     or diag $copydata;
 
 $t=q{COPY in binary mode roundtrips};

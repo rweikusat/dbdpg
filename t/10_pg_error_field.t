@@ -87,17 +87,17 @@ for my $loop (1..5) {
             }
             $t = "(query $loop) Calling pg_error_field returns expected value for field $field";
             my $actual = $dbh->pg_error_field($field);
-            defined $expected ? like ($actual, $expected, $t) : is($actual, undef, $t);
+            defined $expected ? like ($actual, $expected, $t) : is ($actual, undef, $t);
 
             $field = uc $field;
             $t = "(query $loop) Calling pg_error_field returns expected value for field $field";
             $actual = $dbh->pg_error_field($field);
-            defined $expected ? like ($actual, $expected, $t) : is($actual, undef, $t);
+            defined $expected ? like ($actual, $expected, $t) : is ($actual, undef, $t);
 
             if ($field =~ s/PG_DIAG_//) {
                 $t = "(query $loop) Calling pg_error_field returns expected value for field $field";
                 $actual = $dbh->pg_error_field($field);
-                defined $expected ? like ($actual, $expected, $t) : is($actual, undef, $t);
+                defined $expected ? like ($actual, $expected, $t) : is ($actual, undef, $t);
             }
         }
     }

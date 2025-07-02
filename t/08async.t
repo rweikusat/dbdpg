@@ -82,7 +82,7 @@ $t=q{Database method pg_result works after cancel};
 eval {
     $res = $dbh->pg_result();
 };
-is($@, q{}, $t);
+is ($@, q{}, $t);
 
 
 $t=q{Running do() after a cancelled query works};
@@ -236,7 +236,7 @@ SKIP: {
     $t=q{Database method pg_result returns 0 after query was cancelled};
     $dbh->pg_cancel();
     $res = $dbh->pg_result();
-    is(0+$res, 0, $t);
+    is (0+$res, 0, $t);
 } ## end of pg_sleep skip
 
 $t=q{Method execute() works when prepare has PG_ASYNC flag};
@@ -283,7 +283,7 @@ $t=q{Method execute() works when prepare has PG_ASYNC flag};
 eval {
     $sth->execute();
 };
-is($@, q{}, $t);
+is ($@, q{}, $t);
 
 $t=q{After async execute, pg_async_status is 1};
 is ($dbh->{pg_async_status}, 1, $t);
@@ -343,15 +343,15 @@ is ($res, 2, $t);
     eval {
         $res = $dbh->pg_result();
     };
-    is($@, q{}, $t);
-    is(0+$res, 0, $t);
+    is ($@, q{}, $t);
+    is (0+$res, 0, $t);
 
     $t=q{Can prepare another statement after waiting for an async prepare via pg_result};
     my $sth2;
     eval {
         $sth2 = $dbh->prepare('select pg_sleep(?)', { pg_prepare_now => 1 });
     };
-    is($@, q{}, $t);
+    is ($@, q{}, $t);
 }
 
 {
@@ -362,8 +362,8 @@ is ($res, 2, $t);
     my $sth = $dbh->prepare('select  \'34c8e7d61b71de8d\'', { pg_async => 1 });
     $sth->execute();
     my $rows = $dbh->pg_result();
-    is(0+$rows, 1, $t);
-    is($sth->fetchrow_arrayref()->[0], '34c8e7d61b71de8d', $t);
+    is (0+$rows, 1, $t);
+    is ($sth->fetchrow_arrayref()->[0], '34c8e7d61b71de8d', $t);
 
     $dbh->rollback();
     $dbh->{AutoCommit} = 1;
@@ -375,7 +375,7 @@ is ($res, 2, $t);
     eval {
         $dbh->pg_cancel();
     };
-    isnt($@, q{}, $t);
+    isnt ($@, q{}, $t);
 }
 
 {
@@ -386,8 +386,8 @@ is ($res, 2, $t);
     $sth->execute();
     $dbh->pg_cancel();
     my $rows = $dbh->pg_result();
-    is(0+$rows, 0, $t);
-    is($dbh->state(), '57014', $t);
+    is (0+$rows, 0, $t);
+    is ($dbh->state(), '57014', $t);
 
     $dbh->rollback();
     $dbh->{AutoCommit} = 1;
@@ -408,8 +408,8 @@ is ($res, 2, $t);
     }
 
     my $rows = $dbh->pg_result();
-    is(0+$rows, 0, $t);
-    is($dbh->state(), '57014', $t);
+    is (0+$rows, 0, $t);
+    is ($dbh->state(), '57014', $t);
 
     $dbh->rollback();
     $$dbh{AutoCommit} = 1;
