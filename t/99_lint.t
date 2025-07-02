@@ -29,7 +29,7 @@ for my $file (@testfiles) {
     my $line;
     while (defined($line = <$fh>)) {
         last if $line =~ /__DATA__/; ## perlcritic.t
-        for my $func (qw/ok isnt pass fail cmp cmp_ok is_deeply unlike like/) { ## no skip
+        for my $func (qw/is ok isnt pass fail cmp cmp_ok is_deeply unlike like/) { ## no skip
             next if $line !~ /\b$func\b/;
             next if $line =~ /$func \w/; ## e.g. 'skip these tests'
             next if $line =~ /[\$\%]$func/; ## e.g. $ok %ok
