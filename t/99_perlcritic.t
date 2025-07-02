@@ -27,7 +27,7 @@ closedir $dir or die qq{Could not closedir "$dir": $!\n};
 ## Check some non-test files
 my $critic = Perl::Critic->new(-severity => 1);
 
-for my $filename (qw{Pg.pm Makefile.PL lib/Bundle/DBD/Pg.pm }) {
+for my $filename (qw{PgAsync.pm Makefile.PL lib/Bundle/DBD/PgAsync.pm }) {
 
     if ($ENV{TEST_CRITIC_SKIPNONTEST}) {
         pass (qq{Skipping non-test file "$filename"});
