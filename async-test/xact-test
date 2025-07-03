@@ -122,7 +122,7 @@ sub print_pages
     $dbh = dbh_connect('../../pg-conn');
     DBI->trace(15);
     
-    $sth = $dbh->prepare('insert into whatis (cmd, whatis, section) values (?, ?, ?)', { pg_async => 1});
+    $sth = $dbh->prepare('insert into whatis (cmd, whatis, section) values (?, ?, ?)');
     
     $dbh->begin_work();
     $sth->execute('monitor', 'monitor a program', '1');
