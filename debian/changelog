@@ -3,7 +3,7 @@ libdbd-pg-async-perl (0.5) unstable; urgency=medium
   * make dbh cancel method work in face of asychronous operations
     transparently issued by the driver
 
- --
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Thu, 03 Jul 2025 10:00:53 +0100
 
 libdbd-pg-async-perl (0.4.2) unstable; urgency=medium
 
