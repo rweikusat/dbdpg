@@ -1685,7 +1685,7 @@ __END__
 
 =head1 NAME
 
-DBD::PgAsync - PostgreSQL database driver for the DBI module
+DBD::PgAsync - A PostgreSQL database driver for the DBI module
 
 =head1 SYNOPSIS
 
@@ -1704,12 +1704,17 @@ DBD::PgAsync - PostgreSQL database driver for the DBI module
 
 =head1 VERSION
 
-This documents version 3.18.0 of the DBD::PgAsync module
+This documents version 0.5 of the DBD::PgAsync module
 
 =head1 DESCRIPTION
 
-DBD::PgAsync is a Perl module that works with the DBI module to provide access to
-PostgreSQL databases.
+DBD::PgAsync is a fork of the DBD::Pg PostgreSQL database driver
+module intended to have complete support for the libpq asynchronous
+interface. In particular, this means support for asynchronous connect
+and asynchronous prepare and without hidden synchronous operations as
+in the DBD::Pg pg_cancel method or the SQL statements transparently
+issued to start/ initialize a new transaction when AutoCommit is
+disabled.
 
 =head1 MODULE DOCUMENTATION
 
@@ -4524,14 +4529,17 @@ L<The B<DBI> module|DBI>
 
 =head1 BUGS
 
+Known deficiency: Presently (0.5), there's no support for asychronous
+commit or rollback.
+
 To report a bug, or view the current list of bugs, please visit
-https://github.com/bucardo/dbdpg/issues
+https://github.com/rweikusat/dbdpg/issues
 
 =head1 DEVELOPMENT
 
 Pull requests can be submitted to github. Detailed information on how to
 help out with this module can be found in the README.dev file. The latest
-development version can be obtained via: git clone git://github.com/bucardo/dbdpg.git
+development version can be obtained via: git clone https://github.com/rweikusat/dbdpg
 
 =head1 AUTHORS
 
@@ -4541,15 +4549,9 @@ The original DBD-Pg was by Edmund Mergl (E.Mergl@bawue.de) and Jeffrey W. Baker
 (jwbaker@acm.org). Major developers include David Wheeler <david@justatheory.com>, Jason
 Stewart <jason@openinformatics.com>, Bruce Momjian <pgman@candle.pha.pa.us>, and
 Greg Sabino Mullane <greg@turnstep.com>, with help from many others: see the Changes
-file (L<http://search.cpan.org/dist/DBD-Pg/Changes>) for a complete list.
+file (L<http://search.cpan.org/dist/DBD-PgAsync/Changes>) for a complete list.
 
 Parts of this package were originally copied from DBI and DBD-Oracle.
-
-B<Mailing List>
-
-The current maintainers may be reached through the 'dbd-pg' mailing list:
-<dbd-pg@perl.org>. Subscribe by sending an email to dbd-pg-subscribe@perl.org.
-Visit the archives at http://grokbase.com/g/perl/dbd-pg
 
 =head1 COPYRIGHT AND LICENSE
 
