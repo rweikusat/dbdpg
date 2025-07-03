@@ -82,7 +82,6 @@ sub dbh_connect
                                 RaiseError => 1,
                                 pg_server_prepare => 1,
                                 pg_async_connect => 1});
-    $dbh->{ReadOnly} = 1;
 
     do {
         $rc = $dbh->pg_continue_connect();
