@@ -1955,7 +1955,6 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
     imp_sth->cur_tuple         = 0;
     imp_sth->rows              = -1; /* per DBI spec */
     imp_sth->totalsize         = 0;
-    imp_sth->async_flag        = 0;
     imp_sth->async_status      = STH_NO_ASYNC;
     imp_sth->prepare_name      = NULL;
     imp_sth->statement         = NULL;
@@ -1979,6 +1978,7 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
     imp_sth->number_iterations = 0;
 
     /* We inherit some preferences from the database handle */
+    imp_sth->async_flag       = imp_dbh->use_async;
     imp_sth->server_prepare   = imp_dbh->server_prepare;
     imp_sth->switch_prepared  = imp_dbh->switch_prepared;
     imp_sth->prepare_now      = imp_dbh->prepare_now;
