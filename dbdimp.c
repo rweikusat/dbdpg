@@ -314,6 +314,18 @@ static int want_async_connect(pTHX_ SV *attrs)
                 && SvTRUE(sv);
 }
 
+static int want_use_async(pTHX_ SV *attrs)
+{
+        HV *hv;
+        SV **psv, *sv;
+
+        return
+                attrs
+                && (psv = hv_fetchs((HV *)SvRV(attrs), "pg_use_async", 0))
+                && (sv = *psv)
+                && SvTRUE(sv);
+}
+
 static void after_connect_init(pTHX_ SV *dbh, imp_dbh_t * imp_dbh)
 {
     /* Figure out what protocol this server is using (most likely 3) */
@@ -367,7 +379,14 @@ int dbd_db_login6 (SV * dbh, imp_dbh_t * imp_dbh, char * dbname, char * uid, cha
     ConnStatusType connstatus;
     int            async_connect;
 
-    async_connect = want_async_connect(aTHX_ attr);
+    if (want_use_async(aTHX_ attr)) {
+        async_connect = 1;
+        imp_dbh->use_async = 1;
+    } else {
+        async_connect = want_async_connect(aTHX_ attr);
+        imp_dbh->use_async = 0;
+    }
+    
     imp_dbh->aa_first = NULL;
     imp_dbh->aa_pp = &imp_dbh->aa_first;
 
