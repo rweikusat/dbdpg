@@ -9,6 +9,7 @@ Makefile.PL
 
 MANIFEST
 MANIFEST.SKIP
+README.DBD::Pg
 README.win32
 README.dev
 win32.mak
@@ -26,12 +27,23 @@ types.h
 quote.c
 quote.h
 
+async-test/async-test
+async-test/cancel-test
+async-test/prepare-wait-test
+
+debian/changelog
+debian/copyright
+debian/control
+debian/libdbd-pg-async-perl.docs
+debian/rules
+
 .perlcriticrc
 t/dbdpg_test_setup.pl
 t/00_signature.t
 t/00basic.t
 t/01connect.t
 t/01constants.t
+t/01keywords.t
 t/02attribs.t
 t/03dbmethod.t
 t/03smethod.t
