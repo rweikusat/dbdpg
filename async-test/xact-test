@@ -125,7 +125,12 @@ sub print_pages
     $sth = $dbh->prepare('insert into whatis (cmd, whatis, section) values (?, ?, ?)');
     
     $dbh->begin_work();
+
     $sth->execute('monitor', 'monitor a program', '1');
     wait_for_query($dbh);
+
+    $dbh->do('insert into whatis (cmd, whatis, section) values (\'daemon\', \'run command as daemon\', \'8\')');
+    wait_for_query($dbh);
+
     $dbh->rollback();
 }
