@@ -78,7 +78,7 @@ sub dbh_connect
     $cs = make_cspec($acct);
     $dbh = DBI->connect($cs, '', '',
                                {
-                                AutoCommit => 0,
+                                AutoCommit => 1,
                                 RaiseError => 1,
                                 pg_server_prepare => 1,
                                 pg_async_connect => 1});
@@ -119,15 +119,14 @@ sub print_pages
 {
     my ($dbh, $sth, $row);
     
-    DBI->trace(15);
+    
     $dbh = dbh_connect('../../pg-conn');
-    $sth = $dbh->prepare('select cmd, whatis from whatis where section = ? order by cmd', { pg_async => 1 });
-
-    for (SECS) {
-        $sth->execute($_);
-#        $dbh->do("select cmd, whatis from whatis where section = '$_' order by cmd", { pg_async => 1 });
-        wait_for_query($dbh);
-
-        print_pages($_, $sth);
-    }
+    DBI->trace(15);
+    
+    $sth = $dbh->prepare('insert into whatis (cmd, whatis, section) values (?, ?, ?)', { pg_async => 1});
+    
+    $dbh->begin_work();
+    $sth->execute('monitor', 'monitor a program', '1');
+    wait_for_query($dbh);
+    $dbh->rollback();
 }
