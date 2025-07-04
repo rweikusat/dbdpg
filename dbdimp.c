@@ -881,6 +881,11 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         return 0;
     }
 
+    if (DBH_NO_ASYNC != imp_dbh->async_status) {
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: async query active))\n", THEADER_slow);
+        croak("Must wait for async query to finish before commit/ rollback");
+    }
+
     /* We only perform these actions if we need to. For newer servers, we 
        ask it for the status directly and double-check things */
 
