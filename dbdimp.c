@@ -1254,7 +1254,18 @@ int dbd_db_STORE_attrib (SV * dbh, imp_dbh_t * imp_dbh, SV * keysv, SV * valuesv
             retval = 1;
         }
         break;
-    
+
+    case 12: /* pg_use_async */
+
+        if (strEQ("pg_use_async", key)) {
+            imp_dbh->use_async = newval;
+
+            if (TRACE5_slow)
+                TRC(DBILOGFP, "%sSet usa_async to %d\n", THEADER_slow, newval);
+            retval = 1;
+        }
+        break;
+
     case 13: /* pg_errorlevel */
 
         if (strEQ("pg_errorlevel", key)) {
