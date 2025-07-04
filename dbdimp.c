@@ -1121,12 +1121,14 @@ SV * dbd_db_FETCH_attrib (SV * dbh, imp_dbh_t * imp_dbh, SV * keysv)
             return dbd_st_FETCH_attrib (dbh, imp_dbh->do_tmp_sth, keysv);
         break;
 
-    case 12: /* pg_INV_WRITE  pg_utf8_flag */
+    case 12: /* pg_INV_WRITE  pg_utf8_flag pg_use_async */
 
         if (strEQ("pg_INV_WRITE", key))
             retsv = newSViv((IV) INV_WRITE );
         else if (strEQ("pg_utf8_flag", key))
             retsv = newSViv((IV)imp_dbh->pg_utf8_flag);
+        else if (strEQ("pg_use_async", key))
+            retsv = newSViv((IV)imp_dbh->use_async);
         break;
 
     case 13: /* pg_errorlevel */
