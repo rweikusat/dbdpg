@@ -389,7 +389,6 @@ int dbd_db_login6 (SV * dbh, imp_dbh_t * imp_dbh, char * dbname, char * uid, cha
     
     imp_dbh->aa_first = NULL;
     imp_dbh->aa_pp = &imp_dbh->aa_first;
-    imp_dbh->on_async_success = NULL;
 
     if (TSTART_slow) {
         TRC(DBILOGFP, "%sBegin dbd_db_login6\n", THEADER_slow);
@@ -923,16 +922,34 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         return 1;
     }
 
-    status = _result(aTHX_ imp_dbh, action ? "commit" : "rollback");
-        
     /* Set this early, for scripts that continue despite the error below */
     imp_dbh->done_begin = DBDPG_FALSE;
 
-    if (PGRES_COMMAND_OK != status) {
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: status not OK)\n", THEADER_slow);
-        return 0;
+    if (imp_dbh->use_async) {
+        imp_dbh->async_status = DBH_ASYNC;
+        TRACE_PQSENDQUERY;
+        PQsendQuery(imp_dbh->conn, action ? "commit" : "rollback");
+
+        /*
+          Code in DBI.xs DBI_dispatch function will try to "fix" the state
+          if a driver didn't set BegunWork to off and AutoCommit to on
+          after a commit/ rollback. This triggers a second commit/ rollback
+          which will cause an error because of the async commit/ rollback
+          which was just started. Because of this, resetting the DBI state
+          cannot be delayed until the outcome of the command is known when
+          doing an async commit/ rollback.
+
+          :-(
+        */
+    } else {
+        status = _result(aTHX_ imp_dbh, action ? "commit" : "rollback");
+
+        if (PGRES_COMMAND_OK != status) {
+            TRACE_PQERRORMESSAGE;
+            pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
+            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: status not OK)\n", THEADER_slow);
+            return 0;
+        }
     }
 
     /* If begin_work has been called, turn AutoCommit back on and BegunWork off */
@@ -940,7 +957,6 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         DBIc_set(imp_dbh, DBIcf_AutoCommit, 1);
         DBIc_set(imp_dbh, DBIcf_BegunWork, 0);
     }
-
 
     /* We just did a rollback or a commit, so savepoints are not relevant, and we cannot be in a PGRES_COPY state */
     av_undef(imp_dbh->savepoints);
@@ -1269,7 +1285,7 @@ int dbd_db_STORE_attrib (SV * dbh, imp_dbh_t * imp_dbh, SV * keysv, SV * valuesv
             imp_dbh->use_async = newval;
 
             if (TRACE5_slow)
-                TRC(DBILOGFP, "%sSet usa_async to %d\n", THEADER_slow, newval);
+                TRC(DBILOGFP, "%sSet use_async to %d\n", THEADER_slow, newval);
             retval = 1;
         }
         break;
@@ -5836,6 +5852,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         imp_dbh->async_sth->async_status = STH_NO_ASYNC;
     }
     imp_dbh->async_status = DBH_NO_ASYNC;
+
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (rows: %ld)\n", THEADER_slow, rows);
     return rows;
 } /* end of pg_db_result */
