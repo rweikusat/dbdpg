@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 68;
+plan tests => 69;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -413,6 +413,21 @@ is ($res, 2, $t);
 
     $dbh->rollback();
     $$dbh{AutoCommit} = 1;
+    $$dbh{ReadOnly} = 0;
+}
+
+{
+    $t=q{Rollback/commit throws an error when an async query is running};
+    $dbh->begin_work();
+    $dbh->do('select 123', { pg_async => 1 });
+
+    eval {
+        $dbh->rollback();
+    };
+    like($@, qr/^Must wait/, $t);
+
+    $dbh->pg_result();
+    $dbh->rollback();
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
