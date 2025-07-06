@@ -3459,6 +3459,12 @@ command. 0 indicates no asynchronous command is in progress, 1 indicates that
 an asynchronous command has started and -1 indicated that an asynchronous command
 has been cancelled.
 
+=head3 B<pg_use_async>
+
+DBD::PgAsync-specific attribute. If set, all operation will be
+performed asynchronusly. See L<Asynchronous Queries> below for
+more details.
+
 =head3 B<pg_standard_conforming_strings> (boolean, read-only)
 
 DBD::PgAsync specific attribute. Returns true if the server is currently using
@@ -4137,6 +4143,17 @@ created after the one being released are also destroyed.
 
 =head2 Asynchronous Queries
 
+B<This documents the legacy DBD::Pg async interface. For versions of
+DBD::PgAsync E<gt>= 0.6, it's recommend to pass the attribute
+C<pg_use_async> to C<DBI-E<gt>connect> instead. This will cause all
+operations where support for this has been implemented to be performed
+asynchronously unless a C<pg_async> attribute with value C<0> is used
+to disable this.
+
+B<Presently, this means connect, prepare, all explicit query executions
+and the operations necessary to start or end a transaction will be
+performed asynchronously.>
+
 It is possible to send a query to the backend and have your script do other work while the query is
 running on the backend. Both queries sent by the L</do> method, and by the L</execute> method can be
 sent asynchronously. The basic usage is as follows:
@@ -4529,8 +4546,7 @@ L<The B<DBI> module|DBI>
 
 =head1 BUGS
 
-Known deficiency: Presently (0.5), there's no support for asychronous
-commit or rollback.
+Savepoint support is still entirely synchronous.
 
 To report a bug, or view the current list of bugs, please visit
 https://github.com/rweikusat/dbdpg/issues
