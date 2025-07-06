@@ -4071,9 +4071,8 @@ on L</Asynchronous Constants> for more information.
 =head3 B<pg_async_status> (integer, read-only)
 
 DBD::PgAsync specific attribute. Returns the current status of an L<asynchronous|/Asynchronous Queries>
-command. 0 indicates no asynchronous command is in progress, 1 indicates that
-an asynchronous command has started and -1 indicated that an asynchronous command
-has been cancelled.
+command. 0 indicates no asynchronous command is in progress and 1 indicates that
+an asynchronous command has started.
 
 =head3 B<RowsInCache>
 
