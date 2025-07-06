@@ -922,13 +922,11 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         return 1;
     }
 
-    /* Set this early, for scripts that continue despite the error below */
-    imp_dbh->done_begin = DBDPG_FALSE;
-
     if (imp_dbh->use_async) {
         imp_dbh->async_status = DBH_ASYNC;
         TRACE_PQSENDQUERY;
-        PQsendQuery(imp_dbh->conn, action ? "commit" : "rollback");
+        status = PQsendQuery(imp_dbh->conn, action ? "commit" : "rollback");
+        status = status ? PGRES_COMMAND_OK : PGRES_FATAL_ERROR;
 
         /*
           Code in DBI.xs DBI_dispatch function will try to "fix" the state
@@ -941,15 +939,17 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
 
           :-(
         */
-    } else {
+    } else 
         status = _result(aTHX_ imp_dbh, action ? "commit" : "rollback");
-
-        if (PGRES_COMMAND_OK != status) {
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: status not OK)\n", THEADER_slow);
-            return 0;
-        }
+    
+    imp_dbh->done_begin = DBDPG_FALSE;
+    
+    /* Set this early, for scripts that continue despite the error below */
+    if (PGRES_COMMAND_OK != status) {
+        TRACE_PQERRORMESSAGE;
+        pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: status not OK)\n", THEADER_slow);
+        return 0;
     }
 
     /* If begin_work has been called, turn AutoCommit back on and BegunWork off */
