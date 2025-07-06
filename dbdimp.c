@@ -868,6 +868,7 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
 {
     PGTransactionStatusType tstatus;
     ExecStatusType          status;
+    char                    *err;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_rollback_commit (action: %s AutoCommit: %d BegunWork: %d)\n",
                     THEADER_slow,
@@ -939,8 +940,11 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
 
           :-(
         */
-    } else 
+        err = "PQsendQuery failed";
+    } else {
         status = _result(aTHX_ imp_dbh, action ? "commit" : "rollback");
+        err = "status not OK";
+    }
     
     imp_dbh->done_begin = DBDPG_FALSE;
     
@@ -948,7 +952,7 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
     if (PGRES_COMMAND_OK != status) {
         TRACE_PQERRORMESSAGE;
         pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: status not OK)\n", THEADER_slow);
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_commit (error: %s)\n", THEADER_slow, err);
         return 0;
     }
 
