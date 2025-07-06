@@ -386,7 +386,7 @@ int dbd_db_login6 (SV * dbh, imp_dbh_t * imp_dbh, char * dbname, char * uid, cha
         async_connect = want_async_connect(aTHX_ attr);
         imp_dbh->use_async = 0;
     }
-    
+
     imp_dbh->aa_first = NULL;
     imp_dbh->aa_pp = &imp_dbh->aa_first;
 
@@ -945,10 +945,10 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         status = _result(aTHX_ imp_dbh, action ? "commit" : "rollback");
         err = "status not OK";
     }
-    
-    imp_dbh->done_begin = DBDPG_FALSE;
-    
+
     /* Set this early, for scripts that continue despite the error below */
+    imp_dbh->done_begin = DBDPG_FALSE;
+
     if (PGRES_COMMAND_OK != status) {
         TRACE_PQERRORMESSAGE;
         pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
