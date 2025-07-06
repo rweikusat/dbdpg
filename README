@@ -25,6 +25,8 @@ PQsendPrepare instead of PQprepare for async statements.
 	- transactions started automatically when autocommit is off
           use asychronous command execution          
 
+	- commit and rollback can be executed asynchronusly
+
 Bug reports etc specifically about this code should probably rather be
 sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
@@ -42,8 +44,3 @@ based) and the only tested way to build the package is executing
 fakeroot debian/rules binary
 
 in the top-level distribution directory.
-
-async-transactions branch
--------------------------
-
-Implement support for async commit/ rollback/ release.
