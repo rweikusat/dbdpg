@@ -4065,8 +4065,9 @@ being treated as a placeholder.
 
 =head3 B<pg_async> (integer)
 
-DBD::PgAsync specific attribute. Indicates the current behavior for asynchronous queries. See the section
-on L</Asynchronous Constants> for more information.
+DBD::PgAsync specific attribute. Can be used to enable asynchronous
+query processing if the database-level C<pg_use_async> attribute is
+disabled or to disable asynchronous query processing when it's enabled.
 
 =head3 B<pg_async_status> (integer, read-only)
 
@@ -4185,17 +4186,6 @@ sent asynchronously. The basic usage is as follows:
 
   ## We wait until it is done, and get the result:
   $res = $dbh->pg_result();
-
-=head3 Asynchronous Constants
-
-There is currently one asynchronou constants automatically exported by DBD::PgAsync.
-
-=over 4
-
-=item PG_ASYNC
-
-This is a constant for the number 1. It is passed to either the L</do> or the L</prepare> method as a value
-to the pg_async key and indicates that the query should be sent asynchronously.
 
 =back
 
