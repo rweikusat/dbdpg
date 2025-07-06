@@ -1,3 +1,9 @@
+libdbd-pg-async-perl (0.6) unstable; urgency=medium
+
+  * 
+
+ --
+
 libdbd-pg-async-perl (0.5.1) unstable; urgency=medium
 
   * include auto-generated META.json
