@@ -118,11 +118,10 @@ sub print_pages
 {
     my ($dbh, $sth, $row);
     
-    
     $dbh = dbh_connect('../../pg-conn');
-    DBI->trace(15);
     
     $sth = $dbh->prepare('insert into whatis (cmd, whatis, section) values (?, ?, ?)');
+    DBI->trace(15);
     
     $dbh->begin_work();
 
