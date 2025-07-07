@@ -133,4 +133,5 @@ sub print_pages
     wait_for_query($dbh);
 
     $dbh->rollback();
+    wait_for_query($dbh);
 }
