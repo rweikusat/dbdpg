@@ -19,7 +19,7 @@ use 5.008001;
 {
     package DBD::PgAsync;
 
-    use version; our $VERSION = qv('0.5.1');
+    use version; our $VERSION = qv('0.6.0');
 
     use DBI 1.614 ();
     use Exporter ();
