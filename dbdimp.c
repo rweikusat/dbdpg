@@ -1249,6 +1249,7 @@ int dbd_db_STORE_attrib (SV * dbh, imp_dbh_t * imp_dbh, SV * keysv, SV * valuesv
     char *       key = SvPV(keysv,kl);
     unsigned int newval = SvTRUE(valuesv);
     int          retval = 0;
+    int          was_async;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_db_STORE (key: %s newval: %d kl:%d)\n", THEADER_slow, key, newval, (int)kl);
     
@@ -1268,13 +1269,21 @@ int dbd_db_STORE_attrib (SV * dbh, imp_dbh_t * imp_dbh, SV * keysv, SV * valuesv
     case 10: /* AutoCommit  pg_bool_tf */
 
         if (strEQ("AutoCommit", key)) {
-            if (newval != DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-                if (newval!=0) { /* It was off but is now on, so do a final commit */
-                    if (0!=dbd_db_commit(dbh, imp_dbh) && TRACE4_slow)
-                        TRC(DBILOGFP, "%sSetting AutoCommit to 'on' forced a commit\n", THEADER_slow);
-                }
-                DBIc_set(imp_dbh, DBIcf_AutoCommit, newval);
+            if (imp_dbh->done_begin && newval && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
+                /*
+                  Force a synchronous commit when enabling AutoCommit while
+                  inside a transaction.
+                */
+                was_async = imp_dbh->use_async;
+                imp_dbh->use_async = 0;
+                
+                if (0!=dbd_db_commit(dbh, imp_dbh) && TRACE4_slow)
+                    TRC(DBILOGFP, "%sSetting AutoCommit to 'on' forced a commit\n", THEADER_slow);
+
+                imp_dbh->use_async = was_async;
             }
+
+            DBIc_set(imp_dbh, DBIcf_AutoCommit, newval);
             retval = 1;
         }
         else if (strEQ("pg_bool_tf", key)) {
