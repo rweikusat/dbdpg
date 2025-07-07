@@ -373,7 +373,6 @@ GPG
 gpl
 GPL
 greg
-grokbase
 gz
 HandleError
 HandleSetErr
