@@ -412,8 +412,8 @@ is ($res, 2, $t);
     is ($dbh->state(), '57014', $t);
 
     $dbh->rollback();
-    $$dbh{AutoCommit} = 1;
     $$dbh{ReadOnly} = 0;
+    $$dbh{AutoCommit} = 1;
 }
 
 {
