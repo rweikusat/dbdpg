@@ -240,6 +240,14 @@ t/lib/App/Info/RDBMS/PostgreSQL.pm
 t/lib/App/Info/Request.pm
 t/lib/App/Info/Util.pm
 
+Support files for Debian package building.
+
+debian/changelog - Debian changelog file
+debian/control - Debian package metainformation
+debian/copyright - Debian copyright file
+debian/libdbd-pg-async-perl.docs - list of documentation files
+debian/rules - Makefile building the package
+
 
 ===============
 == Compiling ==
