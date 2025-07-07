@@ -54,7 +54,7 @@ my %devfile;
 while (defined($_ = <$fh>) && !/= Compiling/) {
     chomp;
 
-    if (m{^([\w\./-]+) \- }) {
+    if (m{^([\w\./:-]+) \- }) {
         $devfile{$1} = $.;
         next;
     }
