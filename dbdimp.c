@@ -5733,6 +5733,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     long rows = 0;
     char *cmdStatus = NULL;
     imp_sth_t *imp_sth;
+    void (*after_success)(imp_dbh_t *);
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_result\n", THEADER_slow);
 
@@ -5884,6 +5885,12 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         imp_dbh->async_sth->async_status = STH_NO_ASYNC;
     }
     imp_dbh->async_status = DBH_NO_ASYNC;
+
+    after_success = imp_dbh->after_success;
+    if (rows >= 0 && after_success) {
+        imp_dbh->after_success = NULL;
+        after_success(imp_fbh);
+    }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (rows: %ld)\n", THEADER_slow, rows);
     return rows;
