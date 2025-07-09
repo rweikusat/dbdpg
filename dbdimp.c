@@ -110,7 +110,8 @@ static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
 static int do_stmt(SV *dbh, char const *sql, int want_async,
-                   void (*after_success)(imp_dbh_t *), char *caller);
+                   void (*after_success)(imp_dbh_t *, void *), void *arg,
+                   char *caller);
 
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
@@ -3416,7 +3417,8 @@ static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh) {
 
 /* ================================================================== */
 static int do_stmt(SV *dbh, char const *sql, int want_async,
-                   void (*after_success)(imp_dbh_t *), char *caller)
+                   void (*after_success)(imp_dbh_t *, void *), void *arg,
+                   char *caller)
 {
     dTHX;
     D_imp_dbh(dbh);
@@ -3512,7 +3514,8 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
         }
 
         imp_dbh->async_status = DBH_ASYNC;
-        imp_dbh->after_success = after_success;
+        imp_dbh->after_success.cb = after_success;
+        imp_dbh->after_success.arg;
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async)\n", THEADER_slow);
         return 0;
@@ -3533,6 +3536,17 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
     TRACE_PQEXEC;
     imp_dbh->last_result = PQexec(imp_dbh->conn, sql);
     imp_dbh->result_clearable = DBDPG_TRUE;
+
+    if (after_success)
+        switch (PQresultStatus(imp_dbh->last_result)) {
+        case PGRES_BAD_RESPONSE:
+        case PGRES_FATAL_ERROR:
+            return -2;
+
+        default:
+            after_success(imp_dbh, arg);
+        }
+    
     return 0;
 }
 
@@ -3549,7 +3563,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_quickexec (query: %s async: %d async_status: %d)\n",
             THEADER_slow, sql, asyncflag, imp_dbh->async_status);
 
-    rc = do_stmt(dbh, sql, asyncflag, NULL, "pg_quickexec");
+    rc = do_stmt(dbh, sql, asyncflag, NULL, NULL, "pg_quickexec");
     if (rc < 0) return rc;
     if (imp_dbh->async_status) return 0;
     
@@ -5123,10 +5137,18 @@ void pg_db_pg_server_untrace (SV * dbh)
 
 
 /* ================================================================== */
+static void store_savepoint(imp_dbh_t *imp_dbh, void *arg)
+{
+    dTHX;
+    
+    av_push(imp_dbh->savepoints, newSVpv(arg,0));
+    safefree(arg);
+}
+
 int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
 {
     dTHX;
-    int    status;
+    int    rc;
     char * action;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_savepoint (name: %s)\n", THEADER_slow, savepoint);
@@ -5137,34 +5159,13 @@ int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
         return 0;
     }
 
-    /* Start a new transaction if this is the first command */
-    if (!imp_dbh->done_begin) {
-        status = _result(aTHX_ imp_dbh, "begin");
-        if (PGRES_COMMAND_OK != status) {
-            TRACE_PQERRORMESSAGE;
-            pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint (error: status not OK for begin)\n", THEADER_slow);
-            return -2;
-        }
-        imp_dbh->done_begin = DBDPG_TRUE;
-    }
-
-    New(0, action, strlen(savepoint) + 11, char); /* freed below */
+    action = alloca(strlen(savepoint) + 11);
     sprintf(action, "savepoint %s", savepoint);
-    status = _result(aTHX_ imp_dbh, action);
-    Safefree(action);
+    rc = do_stmt(dbh, action, imp_dbh->use_async, store_savepoint, savepv(savepoint),
+                 "pg_db_savepoint");
+    if (rc < 0) return 0;
 
-    if (PGRES_COMMAND_OK != status) {
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint (error: status not OK for savepoint)\n", THEADER_slow);
-        return 0;
-    }
-
-    av_push(imp_dbh->savepoints, newSVpv(savepoint,0));
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint\n", THEADER_slow);
     return 1;
-
 } /* end of pg_db_savepoint */
 
 
@@ -5734,7 +5735,8 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     long rows = 0;
     char *cmdStatus = NULL;
     imp_sth_t *imp_sth;
-    void (*after_success)(imp_dbh_t *);
+    void (*after_success)(imp_dbh_t *, void *);
+    void *arg;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_result\n", THEADER_slow);
 
@@ -5887,10 +5889,13 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     }
     imp_dbh->async_status = DBH_NO_ASYNC;
 
-    after_success = imp_dbh->after_success;
+    after_success = imp_dbh->after_success.cb;
     if (rows >= 0 && after_success) {
-        imp_dbh->after_success = NULL;
-        after_success(imp_dbh);
+        imp_dbh->after_success.cb = NULL;
+        arg = imp_dbh->after_success.arg;
+        imp_dbh->after_success.arg = NULL;
+        
+        after_success(imp_dbh, arg);
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (rows: %ld)\n", THEADER_slow, rows);
