@@ -5889,7 +5889,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     after_success = imp_dbh->after_success;
     if (rows >= 0 && after_success) {
         imp_dbh->after_success = NULL;
-        after_success(imp_fbh);
+        after_success(imp_dbh);
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (rows: %ld)\n", THEADER_slow, rows);
