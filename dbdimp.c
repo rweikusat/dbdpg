@@ -5161,9 +5161,13 @@ int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
 
     action = alloca(strlen(savepoint) + 11);
     sprintf(action, "savepoint %s", savepoint);
+    savepoint = savepv(savepoint);
     rc = do_stmt(dbh, action, imp_dbh->use_async, store_savepoint, savepv(savepoint),
                  "pg_db_savepoint");
-    if (rc < 0) return 0;
+    if (rc < 0) {
+        safefree(savepoint);
+        return 0;
+    }
 
     return 1;
 } /* end of pg_db_savepoint */
