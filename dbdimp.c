@@ -3527,6 +3527,8 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
         imp_dbh->last_result = NULL;
     }
 
+    if (TSQL) TRC(DBILOGFP, "%s;\n\n", sql);
+
     TRACE_PQEXEC;
     imp_dbh->last_result = PQexec(imp_dbh->conn, sql);
     imp_dbh->result_clearable = DBDPG_TRUE;
@@ -3545,8 +3547,6 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_quickexec (query: %s async: %d async_status: %d)\n",
             THEADER_slow, sql, asyncflag, imp_dbh->async_status);
-
-    if (TSQL) TRC(DBILOGFP, "%s;\n\n", sql);
 
     rc = do_stmt(dbh, sql, asyncflag, NULL, "pg_quickexec");
     if (rc < 0) return rc;
