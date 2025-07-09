@@ -1,3 +1,10 @@
+ ----------------
+|async-savepoints
+ ----------------
+
+Implement support for handling savepoints asynchronously.
+
+
 DBD::PgAsync
 ------------
 
