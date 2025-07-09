@@ -111,6 +111,9 @@ static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
 static int send_prep(imp_dbh_t *imp_dbh);
 
+static int do_stmt(SV *dbh, char const *sql, int want_async,
+                   void (*after_success)(imp_dbh_t *), char *caller)
+
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
 {
