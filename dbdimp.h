@@ -62,7 +62,11 @@ struct imp_dbh_st {
     imp_sth_t *do_tmp_sth;      /* temporary sth to refer inside a do() call */
     async_action_t *aa_first, **aa_pp; /* list of asynchronous actions which need to be done before pg_ready can return true */
     int       use_async;               /* use async operations for everything */
-    void      (*after_success)(imp_dbh_t *); /* run after success of an async query */
+
+    struct {
+        void (*cb)(imp_dbh_t *, void *);
+        void *arg;
+    } after_success;
 };
 
 /* Each statement is broken up into segments */
