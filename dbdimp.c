@@ -3480,11 +3480,6 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
         }
     }
 
-    /*
-      We want txn mode if AutoCommit
-     */
-
-
     /* Asynchronous commands get kicked off and return undef */
     if (want_async) {
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with %s\n", THEADER_slow, caller);
