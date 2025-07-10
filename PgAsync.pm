@@ -170,6 +170,7 @@ use 5.008001;
             DBD::PgAsync::db->install_method('pg_result'); ## NOT duplicated below!
             DBD::PgAsync::db->install_method('pg_rollback_to');
             DBD::PgAsync::db->install_method('pg_savepoint');
+            DBD::PgAsync::db->install_method('pg_savepoints');
             DBD::PgAsync::db->install_method('pg_server_trace');
             DBD::PgAsync::db->install_method('pg_server_untrace');
             DBD::PgAsync::db->install_method('pg_type_info');
