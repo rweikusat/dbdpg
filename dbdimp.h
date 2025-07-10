@@ -64,9 +64,9 @@ struct imp_dbh_st {
     int       use_async;               /* use async operations for everything */
 
     struct {
-        void (*cb)(imp_dbh_t *, void *);
+        void (*cb)(int, imp_dbh_t *, void *);
         void *arg;
-    } after_success;
+    } after_async;
 };
 
 /* Each statement is broken up into segments */
