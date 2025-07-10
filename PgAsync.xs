@@ -462,6 +462,22 @@ pg_savepoint(dbh,name)
             warn("savepoint ineffective with AutoCommit enabled");
         ST(0) = (pg_db_savepoint(dbh, imp_dbh, name)!=0) ? &PL_sv_yes : &PL_sv_no;
 
+void
+pg_savepoints(dbh)
+    SV * dbh
+    PREINIT:
+        AV *sps;
+        SV **sps_a;
+        size_t a_len, ndx;
+    PPCODE:
+        D_imp_dbh(dbh);
+        sps = imp_dbh->savepoints;
+        a_len = av_count(sps);
+        if (!a_len) XSRETURN_EMPTY;
+        sps_a = AvARRAY(sps);
+        EXTEND(SP, a_len);
+        ndx = 0;
+        do PUSHs(sps_a[ndx]); while (++ndx < a_len);
 
 void
 pg_rollback_to(dbh,name)
