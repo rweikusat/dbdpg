@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 71;
+plan tests => 75;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -446,6 +446,30 @@ is ($res, 2, $t);
     is ($@, q{}, $t);
 
     $dbh->{pg_use_async} = 0;
+}
+
+{
+    $t=q{Dbh async status is 1 after async savepoint};
+    $$dbh{pg_use_async} = 1;
+    $$dbh{AutoCommit} = 0;
+    $dbh->pg_savepoint('a');
+    is  ($$dbh{pg_async_status}, 1, $t);
+
+    $t=q{Savepoint not recorded before waiting for result};
+    my @a = $dbh->pg_savepoints();
+    is (scalar(@a), 0, $t);
+
+    $t=q{Database method pg_result workd after async savepoint};
+    eval {
+        $dbh->pg_result();
+    };
+    is ($@, q{}, $t);
+
+    $t=q{Savepoint recorded after waiting for result};
+    my @b = $dbh->pg_savepoints();
+    is_deeply (\@b, ['a'], $t);
+
+    $$dbh{pg_use_async} = 0;
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
