@@ -62,9 +62,9 @@ $dbh->commit();
 
 {
     $t='Savepoints method works';
-    $dbh->pg_savepoints($_) for 'a' .. 'c';
+    $dbh->pg_savepoint($_) for 'a' .. 'c';
     my @sps = $dbh->pg_savepoints();
-    is_deeply(\sps, [qw(a b c)], $t);
+    is_deeply(\@sps, [qw(a b c)], $t);
 }
 
 cleanup_database($dbh,'test');
