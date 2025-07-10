@@ -3511,7 +3511,7 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
 
         imp_dbh->async_status = DBH_ASYNC;
         imp_dbh->after_success.cb = after_success;
-        imp_dbh->after_success.arg;
+        imp_dbh->after_success.arg = arg;
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (async)\n", THEADER_slow, caller);
         return 0;
