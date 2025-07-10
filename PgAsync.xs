@@ -473,7 +473,7 @@ pg_savepoints(dbh)
         D_imp_dbh(dbh);
         sps = imp_dbh->savepoints;
         a_len = av_count(sps);
-        if (!a_len) XSRETURN_EMPTY;
+        if (!a_len) XSRETURN(0);
         sps_a = AvARRAY(sps);
         EXTEND(SP, a_len);
         ndx = 0;
