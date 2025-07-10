@@ -3487,7 +3487,7 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
 
     /* Asynchronous commands get kicked off and return undef */
     if (want_async) {
-        if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with do()\n", THEADER_slow);
+        if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with %s\n", THEADER_slow, caller);
         if (want_begin) {
             aa_send_query(imp_dbh, "begin");
             add_async_action(NULL, NULL, aa_after_begin, imp_dbh);
@@ -3508,7 +3508,8 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
 
                 TRACE_PQERRORMESSAGE;
                 pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (error: async do failed)\n", THEADER_slow);
+                if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (error: PQsendQuery failed)\n",
+                                   THEADER_slow, caller);
                 return -2;
             }
         }
@@ -3517,7 +3518,7 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
         imp_dbh->after_success.cb = after_success;
         imp_dbh->after_success.arg;
 
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (async)\n", THEADER_slow);
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (async)\n", THEADER_slow, caller);
         return 0;
     }
     
