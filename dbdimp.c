@@ -5136,9 +5136,7 @@ void pg_db_pg_server_untrace (SV * dbh)
 static void store_savepoint(imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
-    
-    av_push(imp_dbh->savepoints, newSVpv(arg,0));
-    safefree(arg);
+    av_push(imp_dbh->savepoints, arg);
 }
 
 int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
@@ -5146,6 +5144,7 @@ int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
     dTHX;
     int    rc;
     char * action;
+    SV *spsv;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_savepoint (name: %s)\n", THEADER_slow, savepoint);
 
@@ -5155,13 +5154,13 @@ int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
         return 0;
     }
 
-    action = alloca(strlen(savepoint) + 11);
+    spsv = newSVpv(savepoint, 0);
+    action = alloca(SvCUR(spsv) + 11);
     sprintf(action, "savepoint %s", savepoint);
-    savepoint = savepv(savepoint);
-    rc = do_stmt(dbh, action, imp_dbh->use_async, store_savepoint, savepv(savepoint),
+    rc = do_stmt(dbh, action, imp_dbh->use_async, store_savepoint, spsv,
                  "pg_db_savepoint");
     if (rc < 0) {
-        safefree(savepoint);
+        sv_clear(spsv);
         return 0;
     }
 
