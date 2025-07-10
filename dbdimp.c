@@ -110,7 +110,7 @@ static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
 static int do_stmt(SV *dbh, char const *sql, int want_async,
-                   void (*after_success)(imp_dbh_t *, void *), void *arg,
+                   void (*after_query)(int, imp_dbh_t *, void *), void *arg,
                    char *caller);
 
 /* ================================================================== */
@@ -3417,7 +3417,7 @@ static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh) {
 
 /* ================================================================== */
 static int do_stmt(SV *dbh, char const *sql, int want_async,
-                   void (*after_success)(imp_dbh_t *, void *), void *arg,
+                   void (*after_query)(int, imp_dbh_t *, void *), void *arg,
                    char *caller)
 {
     dTHX;
@@ -3510,8 +3510,8 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
         }
 
         imp_dbh->async_status = DBH_ASYNC;
-        imp_dbh->after_success.cb = after_success;
-        imp_dbh->after_success.arg = arg;
+        imp_dbh->after_async.cb = after_query;
+        imp_dbh->after_async.arg = arg;
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (async)\n", THEADER_slow, caller);
         return 0;
@@ -3533,14 +3533,15 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
     imp_dbh->last_result = PQexec(imp_dbh->conn, sql);
     imp_dbh->result_clearable = DBDPG_TRUE;
 
-    if (after_success)
+    if (after_query)
         switch (PQresultStatus(imp_dbh->last_result)) {
         case PGRES_BAD_RESPONSE:
         case PGRES_FATAL_ERROR:
-            return -2;
+            after_query(0, imp_dbh, arg);
+            break;
 
         default:
-            after_success(imp_dbh, arg);
+            after_query(1, imp_dbh, arg);
         }
     
     return 0;
@@ -5133,10 +5134,12 @@ void pg_db_pg_server_untrace (SV * dbh)
 
 
 /* ================================================================== */
-static void store_savepoint(imp_dbh_t *imp_dbh, void *arg)
+static void after_savepoint(int success, imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
-    av_push(imp_dbh->savepoints, arg);
+
+    if (success) av_push(imp_dbh->savepoints, arg);
+    else sv_clear(arg);
 }
 
 int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
@@ -5157,7 +5160,7 @@ int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
     spsv = newSVpv(savepoint, 0);
     action = alloca(SvCUR(spsv) + 11);
     sprintf(action, "savepoint %s", savepoint);
-    rc = do_stmt(dbh, action, imp_dbh->use_async, store_savepoint, spsv,
+    rc = do_stmt(dbh, action, imp_dbh->use_async, after_savepoint, spsv,
                  "pg_db_savepoint");
     if (rc < 0) {
         sv_clear(spsv);
@@ -5734,7 +5737,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     long rows = 0;
     char *cmdStatus = NULL;
     imp_sth_t *imp_sth;
-    void (*after_success)(imp_dbh_t *, void *);
+    void (*after_async)(int, imp_dbh_t *, void *);
     void *arg;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_result\n", THEADER_slow);
@@ -5888,13 +5891,13 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     }
     imp_dbh->async_status = DBH_NO_ASYNC;
 
-    after_success = imp_dbh->after_success.cb;
-    if (rows >= 0 && after_success) {
-        imp_dbh->after_success.cb = NULL;
-        arg = imp_dbh->after_success.arg;
-        imp_dbh->after_success.arg = NULL;
+    after_async = imp_dbh->after_async.cb;
+    if (after_async) {
+        imp_dbh->after_async.cb = NULL;
+        arg = imp_dbh->after_async.arg;
+        imp_dbh->after_async.arg = NULL;
         
-        after_success(imp_dbh, arg);
+        after_async(rows >= 0, imp_dbh, arg);
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (rows: %ld)\n", THEADER_slow, rows);
