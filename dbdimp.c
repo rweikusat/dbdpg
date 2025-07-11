@@ -5215,6 +5215,7 @@ int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
         return 0;
     }
 
+    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint\n", THEADER_slow);
     return 1;
 } /* end of pg_db_savepoint */
 
