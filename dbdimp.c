@@ -5241,8 +5241,12 @@ int pg_db_rollback_to (SV * dbh, imp_dbh_t * imp_dbh, const char *savepoint)
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to (0)\n", THEADER_slow);
         return 0;
     }
-    if (!have_savepoint(imp_dbh, savepoint)) return 0;
-
+    if (!have_savepoint(imp_dbh, savepoint)) {
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to (%s not found)\n",
+                           THEADER_slow, savepoint);
+        return 0;
+    }
+    
     action = alloca(strlen(savepoint) + 13);
     sprintf(action, "rollback to %s", savepoint);
     savepoint = savepv(savepoint);
