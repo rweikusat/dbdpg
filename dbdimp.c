@@ -5246,7 +5246,7 @@ int pg_db_rollback_to (SV * dbh, imp_dbh_t * imp_dbh, const char *savepoint)
                            THEADER_slow, savepoint);
         return 0;
     }
-    
+
     action = alloca(strlen(savepoint) + 13);
     sprintf(action, "rollback to %s", savepoint);
     savepoint = savepv(savepoint);

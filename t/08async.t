@@ -486,7 +486,7 @@ is ($res, 2, $t);
         $dbh->pg_result();
     };
     is ($@, q{}, $t);
-        
+
     $t=q{Savepoint gone after waiting for result};
     @b = $dbh->pg_savepoints();
     is (scalar(@b), 0, $t);
