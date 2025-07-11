@@ -5160,15 +5160,22 @@ static int have_savepoint(imp_dbh_t *imp_dbh, char const *savepoint)
     char *sp;
     size_t ndx;
 
+    if (TRACE5_slow) TRC(DBILOGFP, "%sLooking for savepoint %s ... ",
+                         THEADER_slow, savepoint);
+
     ndx = av_count(imp_dbh->savepoints);
     sps = AvARRAY(imp_dbh->savepoints);
     while (ndx) {
         --ndx;
         sp = SvPV_nolen(sps[ndx]);
 
-        if (strcmp(sp, savepoint)) return 1;
+        if (strcmp(sp, savepoint) == 0) {
+            if (TRACE5_slow) TRC(DBILOGFP, "found\n");
+            return 1;
+        }
     }
 
+    if (TRACE5_slow) TRC(DBILOGFP, "not found\n");
     return 0;
 }
 
