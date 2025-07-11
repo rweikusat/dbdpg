@@ -5263,7 +5263,6 @@ int pg_db_rollback_to (SV * dbh, imp_dbh_t * imp_dbh, const char *savepoint)
         return 0;
     }
 
-    pg_db_free_savepoints_to(aTHX_ imp_dbh, savepoint);
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to\n", THEADER_slow);
     return 1;
 
