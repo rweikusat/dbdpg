@@ -5201,7 +5201,7 @@ int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
                  "pg_db_savepoint");
     switch (rc) {
     case STMT_ERR:
-        return -2;
+        return 0;
 
     case STMT_SENT:
         return 1;
