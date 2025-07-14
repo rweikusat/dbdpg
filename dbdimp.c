@@ -5145,12 +5145,61 @@ void pg_db_pg_server_untrace (SV * dbh)
 
 
 /* ================================================================== */
+static int savepoint_action(SV * dbh, imp_dbh_t * imp_dbh, char *cmd, char *savepoint,
+                            void (*done)(int, imp_dbh_t *, void *), char *caller)
+{
+    dTHX;
+    unsigned need;
+    int    rc;
+    char *action;
+
+    if (TSTART_slow) TRC(DBILOGFP, "%sBegin %s (name: %s)\n",
+                         THEADER_slow, caller, savepoint);
+
+    /* no action if AutoCommit = on or the connection is invalid */
+    if ((NULL == imp_dbh->conn) || (DBIc_has(imp_dbh, DBIcf_AutoCommit))) {
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint (0)\n", THEADER_slow);
+        return 0;
+    }
+
+    savepoint = savepv(savepoint);
+    need = strlen(cmd) + strlen(savepoint) + 2;
+    action = alloca(need);
+    sprintf(action, "%s %s", cmd, savepoint);
+    rc = do_stmt(dbh, action, imp_dbh->use_async, done, savepoint,
+                 caller);
+    switch (rc) {
+    case STMT_ERR:
+        return 0;
+
+    case STMT_SENT:
+        return 1;
+    }
+
+    rc = _sqlstate(aTHX_ imp_dbh, imp_dbh->last_result);
+    if (PGRES_COMMAND_OK != rc) {
+        TRACE_PQERRORMESSAGE;
+        pg_error(aTHX_ dbh, rc, PQerrorMessage(imp_dbh->conn));
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (error: status not OK)\n", THEADER_slow, caller);
+        return 0;
+    }
+
+    if (TEND_slow) TRC(DBILOGFP, "%sEnd %s\n", THEADER_slow, caller);
+    return 1;
+}
+
 static void after_savepoint(int success, imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
 
-    if (success) av_push(imp_dbh->savepoints, arg);
-    else sv_clear(arg);
+    if (success) av_push(imp_dbh->savepoints, newSVpv(arg, 0));
+    safefree(arg);
+}
+
+int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
+{
+    return savepoint_action(dbh, imp_dbh, "savepoint", savepoint,
+                            after_savepoint, "pg_db_savepoint");
 }
 
 static int have_savepoint(imp_dbh_t *imp_dbh, char const *savepoint)
@@ -5179,45 +5228,6 @@ static int have_savepoint(imp_dbh_t *imp_dbh, char const *savepoint)
     return 0;
 }
 
-int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
-{
-    dTHX;
-    int    rc;
-    char * action;
-    SV *spsv;
-
-    if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_savepoint (name: %s)\n", THEADER_slow, savepoint);
-
-    /* no action if AutoCommit = on or the connection is invalid */
-    if ((NULL == imp_dbh->conn) || (DBIc_has(imp_dbh, DBIcf_AutoCommit))) {
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint (0)\n", THEADER_slow);
-        return 0;
-    }
-
-    spsv = newSVpv(savepoint, 0);
-    action = alloca(SvCUR(spsv) + 11);
-    sprintf(action, "savepoint %s", savepoint);
-    rc = do_stmt(dbh, action, imp_dbh->use_async, after_savepoint, spsv,
-                 "pg_db_savepoint");
-    switch (rc) {
-    case STMT_ERR:
-        return 0;
-
-    case STMT_SENT:
-        return 1;
-    }
-
-    rc = _sqlstate(aTHX_ imp_dbh, imp_dbh->last_result);
-    if (PGRES_COMMAND_OK != rc) {
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ dbh, rc, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint (error: status not OK for savepoint)\n", THEADER_slow);
-        return 0;
-    }
-
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_savepoint\n", THEADER_slow);
-    return 1;
-} /* end of pg_db_savepoint */
 
 /* ================================================================== */
 static void after_rollback_to(int success, imp_dbh_t *imp_dbh, void *arg)
@@ -5228,50 +5238,19 @@ static void after_rollback_to(int success, imp_dbh_t *imp_dbh, void *arg)
     safefree(arg);
 }
 
-int pg_db_rollback_to (SV * dbh, imp_dbh_t * imp_dbh, const char *savepoint)
+int pg_db_rollback_to (SV * dbh, imp_dbh_t * imp_dbh, char *savepoint)
 {
     dTHX;
-    char * action;
-    int rc;
-
-    if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_rollback_to (name: %s)\n", THEADER_slow, savepoint);
-
-    /* no action if AutoCommit = on or the connection is invalid */
-    if ((NULL == imp_dbh->conn) || (DBIc_has(imp_dbh, DBIcf_AutoCommit))) {
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to (0)\n", THEADER_slow);
-        return 0;
-    }
+    
     if (!have_savepoint(imp_dbh, savepoint)) {
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to (%s not found)\n",
                            THEADER_slow, savepoint);
         return 0;
     }
 
-    action = alloca(strlen(savepoint) + 13);
-    sprintf(action, "rollback to %s", savepoint);
-    savepoint = savepv(savepoint);
-    rc = do_stmt(dbh, action, imp_dbh->use_async, after_rollback_to, (void *)savepoint,
-                 "pg_db_rollback");
-    switch (rc) {
-    case STMT_ERR:
-        return 0;
-
-    case STMT_SENT:
-        return 1;
-    }
-
-    rc = _sqlstate(aTHX_ imp_dbh, imp_dbh->last_result);
-    if (PGRES_COMMAND_OK != rc) {
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ dbh, rc, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to (error: status not OK for rollback)\n", THEADER_slow);
-        return 0;
-    }
-
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to\n", THEADER_slow);
-    return 1;
-
-} /* end of pg_db_rollback_to */
+    return savepoint_action(dbh, imp_dbh, "rollback to", savepoint,
+                            after_rollback_to, "pg_db_rollback_to");
+}
 
 
 /* ================================================================== */
