@@ -492,6 +492,11 @@ is ($res, 2, $t);
     is (scalar(@b), 0, $t);
 
     $$dbh{pg_use_async} = 0;
+
+    #
+    # no tests for async release as that 100% the same code
+    # as rollback_to
+    #
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
