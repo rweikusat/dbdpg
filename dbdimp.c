@@ -5230,7 +5230,7 @@ static int have_savepoint(imp_dbh_t *imp_dbh, char const *savepoint)
 
 
 /* ================================================================== */
-static void after_rollback_to(int success, imp_dbh_t *imp_dbh, void *arg)
+static void after_release(int success, imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
 
@@ -5238,10 +5238,10 @@ static void after_rollback_to(int success, imp_dbh_t *imp_dbh, void *arg)
     safefree(arg);
 }
 
-int pg_db_rollback_to (SV * dbh, imp_dbh_t * imp_dbh, char *savepoint)
+int pg_db_rollback_to(SV * dbh, imp_dbh_t * imp_dbh, char *savepoint)
 {
     dTHX;
-    
+
     if (!have_savepoint(imp_dbh, savepoint)) {
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_rollback_to (%s not found)\n",
                            THEADER_slow, savepoint);
@@ -5249,43 +5249,22 @@ int pg_db_rollback_to (SV * dbh, imp_dbh_t * imp_dbh, char *savepoint)
     }
 
     return savepoint_action(dbh, imp_dbh, "rollback to", savepoint,
-                            after_rollback_to, "pg_db_rollback_to");
+                            after_release, "pg_db_rollback_to");
 }
 
-
-/* ================================================================== */
-int pg_db_release (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
+int pg_db_release(SV * dbh, imp_dbh_t * imp_dbh, char *savepoint)
 {
     dTHX;
-    int    status;
-    char * action;
 
-    if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_release (name: %s)\n", THEADER_slow, savepoint);
-
-    /* no action if AutoCommit = on or the connection is invalid */
-    if ((NULL == imp_dbh->conn) || (DBIc_has(imp_dbh, DBIcf_AutoCommit))) {
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_release (0)\n", THEADER_slow);
+    if (!have_savepoint(imp_dbh, savepoint)) {
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_release (%s not found)\n",
+                           THEADER_slow, savepoint);
         return 0;
     }
 
-    New(0, action, strlen(savepoint) + 9, char);
-    sprintf(action, "release %s", savepoint);
-    status = _result(aTHX_ imp_dbh, action);
-    Safefree(action);
-
-    if (PGRES_COMMAND_OK != status) {
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_release (error: status not OK for release)\n", THEADER_slow);
-        return 0;
-    }
-
-    pg_db_free_savepoints_to(aTHX_ imp_dbh, savepoint);
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_release\n", THEADER_slow);
-    return 1;
-
-} /* end of pg_db_release */
-
+    return savepoint_action(dbh, imp_dbh, "release", savepoint,
+                            after_release, "pg_db_release");
+}
 
 /* ================================================================== */
 /* 
