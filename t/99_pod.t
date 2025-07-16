@@ -273,6 +273,7 @@ for my $filename (@pm_files) {
     ## Assume the rest is POD.
     my $passed = 1;
     while (<$fh>) {
+        s/E<[^<>]+>//g;
         if (/C<[^<].+[<>].+[^>]>\b/) {
             $passed = 0;
             diag "Failed POD escaping on line $. of $filename\n";
