@@ -1,3 +1,13 @@
+ ----------------
+|async-savepoints
+ ----------------
+
+Implement support for handling savepoints asynchronously.
+
+Should now support async creation of savepoints and async rollback_to
+but not yet async release.
+
+
 DBD::PgAsync
 ------------
 
