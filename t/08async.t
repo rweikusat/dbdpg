@@ -455,7 +455,7 @@ is ($res, 2, $t);
     $$dbh{pg_use_async} = 1;
     $$dbh{AutoCommit} = 0;
     $dbh->pg_savepoint('a');
-    is  ($$dbh{pg_async_status}, 1, $t);
+    is ($$dbh{pg_async_status}, 1, $t);
 
     $t=q{Savepoint not recorded before waiting for result};
     my @a = $dbh->pg_savepoints();

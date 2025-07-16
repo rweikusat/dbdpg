@@ -92,7 +92,7 @@ enum {
 };
 
 enum {
-    TEMP_STH =	8
+    TEMP_STH = 8
 };
 
 enum {

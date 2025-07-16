@@ -4146,7 +4146,7 @@ created after the one being released are also destroyed.
 
 B<This documents the legacy DBD::Pg async interface. For versions of
 DBD::PgAsync E<gt>= 0.6, it's recommend to pass the attribute
-C<pg_use_async> to C<DBI-E<gt>connect> instead. This will cause all
+C<pg_use_async> to C<DBI-E<gt>connct> instead. This will cause all
 operations where support for this has been implemented to be performed
 asynchronously unless a C<pg_async> attribute with value C<0> is used
 to disable this.
