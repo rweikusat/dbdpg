@@ -471,7 +471,7 @@ is ($res, 2, $t);
     my @b = $dbh->pg_savepoints();
     is_deeply (\@b, ['a'], $t);
 
-    # rollbacke_to tests
+    # rollback_to tests
     #
     $t=q{Dbh async status is 1 after async rollback_to};
     $dbh->pg_rollback_to('a');
