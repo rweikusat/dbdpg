@@ -265,7 +265,7 @@ void pg_db_pg_server_untrace (SV *dbh);
 
 int pg_db_savepoint (SV *dbh, imp_dbh_t *imp_dbh, char * savepoint);
 
-int pg_db_rollback_to (SV *dbh, imp_dbh_t *imp_dbh, const char * savepoint);
+int pg_db_rollback_to (SV *dbh, imp_dbh_t *imp_dbh, char * savepoint);
 
 int pg_db_release (SV *dbh, imp_dbh_t *imp_dbh, char * savepoint);
 
