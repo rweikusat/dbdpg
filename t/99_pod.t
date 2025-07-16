@@ -274,10 +274,13 @@ for my $filename (@pm_files) {
     my $passed = 1;
     while (<$fh>) {
         s/E<[^<>]+>//g;
-        if (/C<[^<].+[<>].+[^>]>\b/) {
-            $passed = 0;
-            diag "Failed POD escaping on line $. of $filename\n";
-            diag $_;
+
+        for (/C<(?!<+ )([^>]+)>/g) {
+            if (/</) {
+                $passed = 0;
+                diag "Failed POD escaping on line $. of $filename\n";
+                diag $_;
+            }
         }
     }
     close $fh or warn qq{Could not close "$filename": $!\n};
