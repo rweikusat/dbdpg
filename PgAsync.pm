@@ -4146,14 +4146,14 @@ created after the one being released are also destroyed.
 
 B<This documents the legacy DBD::Pg async interface. For versions of
 DBD::PgAsync E<gt>= 0.6, it's recommend to pass the attribute
-C<pg_use_async> to C<DBI-E<gt>connct> instead. This will cause all
+C<pg_use_async> to C<DBI-E<gt>connect> instead. This will cause all
 operations where support for this has been implemented to be performed
 asynchronously unless a C<pg_async> attribute with value C<0> is used
 to disable this.
 
-B<Presently, this means connect, prepare, all explicit query executions
-and the operations necessary to start or end a transaction will be
-performed asynchronously.>
+B<Presently, this means connect, prepare, all explicit query executions,
+the operations necessary to start or end a transaction and the savepoint
+methods will be performed asynchronously.>
 
 It is possible to send a query to the backend and have your script do other work while the query is
 running on the backend. Both queries sent by the L</do> method, and by the L</execute> method can be
