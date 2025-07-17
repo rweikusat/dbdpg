@@ -1,13 +1,3 @@
- ----------------
-|async-savepoints
- ----------------
-
-Implement support for handling savepoints asynchronously.
-
-Should now support async creation of savepoints and async rollback_to
-but not yet async release.
-
-
 DBD::PgAsync
 ------------
 
@@ -36,6 +26,8 @@ PQsendPrepare instead of PQprepare for async statements.
           use asychronous command execution          
 
 	- commit and rollback can be executed asynchronusly
+
+	- savepoint method will use asynchronous mode if enabled
 
 Bug reports etc specifically about this code should probably rather be
 sent to me than to any other DBD::Pg address, especially including the
