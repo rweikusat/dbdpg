@@ -3430,7 +3430,7 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
     D_imp_dbh(dbh);
     imp_sth_t *sth;
     int want_begin, status;
-    
+
     if (NULL == imp_dbh->conn) {
         pg_error(aTHX_ dbh, PGRES_FATAL_ERROR, "Database handle has been disconnected");
         return STMT_ERR;
@@ -3522,7 +3522,7 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
         if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (async)\n", THEADER_slow, caller);
         return STMT_SENT;
     }
-    
+
     /* Free the last_result as needed, as we are about to replace it */
     if (imp_dbh->last_result && imp_dbh->result_clearable) {
         TRACE_PQCLEAR;
@@ -3549,7 +3549,7 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
         default:
             after_query(1, imp_dbh, arg);
         }
-    
+
     return STMT_DONE;
 }
 
@@ -3574,7 +3574,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     case STMT_SENT:
         return 0;
     }
-    
+
     status = _sqlstate(aTHX_ imp_dbh, imp_dbh->last_result);
 
     imp_dbh->copystate = 0; /* Assume not in copy mode until told otherwise */
@@ -5923,7 +5923,7 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         imp_dbh->after_async.cb = NULL;
         arg = imp_dbh->after_async.arg;
         imp_dbh->after_async.arg = NULL;
-        
+
         after_async(rows >= 0, imp_dbh, arg);
     }
 
