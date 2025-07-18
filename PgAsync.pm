@@ -4126,6 +4126,13 @@ multiple savepoints with the same name to exist.
 
   $dbh->pg_savepoint("mysavepoint");
 
+=head3 C<pg_savepoints>
+
+Returns a list of the names of all active savepoints created
+via C<pg_savepoint>.
+
+  $dbh->pg_savepoints()
+
 =head3 C<pg_rollback_to>
 
 Rolls the database back to a named savepoint, discarding any work performed after
