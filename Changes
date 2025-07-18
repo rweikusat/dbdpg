@@ -1,6 +1,10 @@
 Changes for the DBD::PgAsync module
 
---- 07/17/2024 rweikusat@talktalk.net ---
+--- 07/18/2025 rweikusat@talktalk.net ---
+
+    - document pg_savepoints method
+
+--- 07/17/2025 rweikusat@talktalk.net ---
 
     - integrated upstream regdatabase changes
     - added a method to query the set of existing savepoints
