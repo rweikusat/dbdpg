@@ -72,12 +72,10 @@ sub dbh_connect
     $cs = make_cspec($acct);
     $dbh = DBI->connect($cs, '', '',
                                {
-                                AutoCommit => 0,
+                                AutoCommit => 1,
                                 RaiseError => 1,
                                 pg_server_prepare => 1,
                                 pg_async_connect => 1});
-    $dbh->{ReadOnly} = 1;
-
     do {
         $rc = $dbh->pg_continue_connect();
         msg('continue async connect %d', $rc);

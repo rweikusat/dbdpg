@@ -3815,7 +3815,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         || !imp_sth->server_prepare
         )
         pqtype = PQTYPE_EXEC;
-    else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
+    else if (NULL != imp_sth->prepare_name) {
         pqtype = PQTYPE_PREPARED;
     }
     else if (0==imp_sth->switch_prepared || imp_sth->number_iterations < imp_sth->switch_prepared) {

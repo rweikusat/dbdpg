@@ -1,5 +1,11 @@
 Changes for the DBD::PgAsync module
 
+--- 07/21/2025 rweikusat@talktalk.net ---
+
+    - fixed a bug in dbd_st_execute which prevented the use of an
+      already prepared query when the autoprepare repetition threshold
+      hadn't yet been reached
+
 --- 07/18/2025 rweikusat@talktalk.net ---
 
     - document pg_savepoints method
