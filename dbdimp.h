@@ -22,6 +22,8 @@ struct async_action_st {
 };
 typedef struct async_action_st async_action_t;
 
+typedef long async_result_handler(PGresult *, int, SV *, void *);
+
 struct imp_dbh_st {
     dbih_dbc_t com;            /* MUST be first element in structure */
 
@@ -64,9 +66,9 @@ struct imp_dbh_st {
     int       use_async;               /* use async operations for everything */
 
     struct {
-        void (*cb)(int, imp_dbh_t *, void *);
+        async_result_handler *handler;
         void *arg;
-    } after_async;
+    } async_result;
 };
 
 /* Each statement is broken up into segments */
