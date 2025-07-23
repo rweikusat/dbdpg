@@ -100,9 +100,8 @@ enum {
 };
 
 enum {
-    STMT_ERR,
-    STMT_SENT,
-    STMT_DONE
+    STMT_ERR = -2,
+    STMT_SENT = -1
 };
 
 static void pg_error(pTHX_ SV *h, int error_num, const char *error_msg);
@@ -119,9 +118,9 @@ static PGTransactionStatusType pg_db_txn_status (pTHX_ imp_dbh_t *imp_dbh);
 static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
-static int do_stmt(SV *dbh, char const *sql, int want_async,
-                   async_result_handler *, void *arg,
-                   char *caller);
+static long do_stmt(SV *dbh, char const *sql, int want_async,
+                    async_result_handler *, void *arg,
+                    char *caller);
 
 static long handle_query_result(PGresult *, int, SV *, void *);
 
@@ -3437,13 +3436,15 @@ static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh) {
 }
 
 /* ================================================================== */
-static int do_stmt(SV *dbh, char const *sql, int want_async,
-                   async_result_handler *res_handler, void *arg,
-                   char *caller)
+static long do_stmt(SV *dbh, char const *sql, int want_async,
+                    async_result_handler *res_handler, void *arg,
+                    char *caller)
 {
     dTHX;
     D_imp_dbh(dbh);
+    PGresult *result;
     imp_sth_t *sth;
+    long rows;
     int want_begin, status;
 
     if (NULL == imp_dbh->conn) {
@@ -3551,14 +3552,15 @@ static int do_stmt(SV *dbh, char const *sql, int want_async,
     if (TSQL) TRC(DBILOGFP, "%s;\n\n", sql);
 
     TRACE_PQEXEC;
-    imp_dbh->last_result = PQexec(imp_dbh->conn, sql);
+    result = imp_dbh->last_result = PQexec(imp_dbh->conn, sql);
     imp_dbh->result_clearable = DBDPG_TRUE;
+    status = _sqlstate(aTHX_ imp_dbh, imp_dbh->last_result);
 
+    rows = 0;
     if (res_handler)
-        res_handler(imp_dbh->last_result, PQresultStatus(imp_dbh->last_result),
-                    dbh, arg);
+        rows = res_handler(result, status, dbh, arg);
 
-    return STMT_DONE;
+    return rows;
 }
 
 long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
@@ -3569,82 +3571,17 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     PGTransactionStatusType txn_status;
     char *                  cmdStatus = NULL;
     long                    rows = 0;
-    int                     rc;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_quickexec (query: %s async: %d async_status: %d)\n",
             THEADER_slow, sql, asyncflag, imp_dbh->async_status);
 
-    rc = do_stmt(dbh, sql, asyncflag, NULL, NULL, "pg_quickexec");
-    switch (rc) {
+    rows = do_stmt(dbh, sql, asyncflag, handle_query_result, NULL, "pg_quickexec");
+    switch (rows) {
     case STMT_ERR:
         return -2;
 
     case STMT_SENT:
-        imp_dbh->async_result.handler = handle_query_result;
-        imp_dbh->async_result.arg = NULL;
         return 0;
-    }
-
-    status = _sqlstate(aTHX_ imp_dbh, imp_dbh->last_result);
-
-    imp_dbh->copystate = 0; /* Assume not in copy mode until told otherwise */
-
-    if (TRACE4_slow) TRC(DBILOGFP, "%sGot a status of %d\n", THEADER_slow, status);
-    switch ((int)status) {
-    case PGRES_TUPLES_OK:
-        TRACE_PQNTUPLES;
-        rows = PQntuples(imp_dbh->last_result);
-        break;
-    case PGRES_COMMAND_OK:
-        /* non-select statement */
-        TRACE_PQCMDSTATUS;
-        cmdStatus = PQcmdStatus(imp_dbh->last_result);
-        /* If the statement indicates a number of rows, we want to return that */
-        /* Note: COPY and FETCH do not currently reach here, although they return numbers */
-        if (0 == strncmp(cmdStatus, "INSERT", 6)) {
-            /* INSERT(space)oid(space)numrows */
-            for (rows=8; cmdStatus[rows-1] != ' '; rows++) {
-            }
-            rows = atol(cmdStatus + rows);
-        }
-        else if (0 == strncmp(cmdStatus, "MOVE", 4)) {
-            rows = atol(cmdStatus + 5);
-        }
-        else if (0 == strncmp(cmdStatus, "DELETE", 6)
-               || 0 == strncmp(cmdStatus, "UPDATE", 6)
-               || 0 == strncmp(cmdStatus, "SELECT", 6)) {
-            rows = atol(cmdStatus + 7);
-        }
-        else if (0 == strncmp(cmdStatus, "MERGE", 5)) {
-            rows = atol(cmdStatus + 6);
-        }
-        break;
-    case PGRES_COPY_OUT:
-    case PGRES_COPY_IN:
-    case PGRES_COPY_BOTH:
-        /* Copy Out/In data transfer in progress */
-        imp_dbh->copystate = status;
-        imp_dbh->copybinary = PQbinaryTuples(imp_dbh->last_result);
-        rows = -1;
-        break;
-    case PGRES_EMPTY_QUERY:
-    case PGRES_BAD_RESPONSE:
-    case PGRES_NONFATAL_ERROR:
-        rows = -2;
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-        break;
-    case PGRES_FATAL_ERROR:
-    default:
-        rows = -2;
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-        break;
-    }
-
-    if (NULL == imp_dbh->last_result) {
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (no result)\n", THEADER_slow);
-        return -2;
     }
 
     TRACE_PQTRANSACTIONSTATUS;
