@@ -945,6 +945,8 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         TRACE_PQSENDQUERY;
         status = PQsendQuery(imp_dbh->conn, action ? "commit" : "rollback");
         status = status ? PGRES_COMMAND_OK : PGRES_FATAL_ERROR;
+        imp_dbh->async_result.handler = handle_query_result;
+        imp_dbh->async_result.arg = NULL;
 
         /*
           Code in DBI.xs DBI_dispatch function will try to "fix" the state
