@@ -5750,7 +5750,7 @@ int dbd_st_blob_read (SV * sth, imp_sth_t * imp_sth, int lobjId, long offset, lo
    Return the result of an asynchronous query, waiting if needed
 */
 static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *imp_dbh,
-                                void *unused)
+                                void *p)
 {
     dTHX;
     imp_sth_t *imp_sth;
@@ -5759,23 +5759,24 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
 
     imp_dbh->copystate = 0;
     rows = 0;
+    imp_sth = imp_dbh->async_sth;
+    if (!imp_sth) imp_sth = p;
 
     switch ((int)status) {
     case PGRES_TUPLES_OK:
         TRACE_PQNTUPLES;
         rows = PQntuples(result);
 
-        if (NULL != imp_dbh->async_sth) {
-            imp_dbh->async_sth->cur_tuple = 0;
+        if (imp_sth) {
+            imp_sth->cur_tuple = 0;
             TRACE_PQNFIELDS;
-            DBIc_NUM_FIELDS(imp_dbh->async_sth) = PQnfields(result);
-            DBIc_ACTIVE_on(imp_dbh->async_sth);
+            DBIc_NUM_FIELDS(imp_sth) = PQnfields(result);
+            DBIc_ACTIVE_on(imp_sth);
         }
 
         break;
     case PGRES_COMMAND_OK:
         /* async prepare */
-        imp_sth = imp_dbh->async_sth;
         if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
             imp_sth->prepared_by_us = DBDPG_TRUE;
             ++imp_dbh->prepare_number;
