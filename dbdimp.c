@@ -5920,6 +5920,8 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     if (NULL != imp_dbh->async_sth) {
         imp_dbh->async_sth->rows = rows;
         imp_dbh->async_sth->async_status = STH_NO_ASYNC;
+
+        imp_dbh->async_sth = NULL;
     }
     imp_dbh->async_status = DBH_NO_ASYNC;
 
