@@ -5757,6 +5757,7 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     char *cmdStatus;
     long rows;
 
+    rows = 0;
     switch ((int)status) {
     case PGRES_TUPLES_OK:
         TRACE_PQNTUPLES;
