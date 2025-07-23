@@ -4105,89 +4105,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     }
 
     status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
+    ret = handle_query_result(imp_sth->result, status, sth, imp_dbh, imp_sth);
 
-    imp_dbh->copystate = 0; /* Assume not in copy mode until told otherwise */
-
-    if (PGRES_TUPLES_OK == status) {
-        TRACE_PQNFIELDS;
-        num_fields = PQnfields(imp_sth->result);
-        imp_sth->cur_tuple = 0;
-        DBIc_NUM_FIELDS(imp_sth) = num_fields;
-        DBIc_ACTIVE_on(imp_sth);
-        TRACE_PQNTUPLES;
-        ret = PQntuples(imp_sth->result);
-        if (TRACE5_slow) TRC(DBILOGFP,
-                        "%sStatus was PGRES_TUPLES_OK, fields=%d, tuples=%ld\n",
-                        THEADER_slow, num_fields, ret);
-    }
-    else if (PGRES_COMMAND_OK == status) {
-        /* non-select statement */
-        char *cmdStatus = NULL;
-        bool gotrows = DBDPG_FALSE;
-
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sStatus was PGRES_COMMAND_OK\n", THEADER_slow);
-
-        if (imp_sth->result) {
-            TRACE_PQCMDSTATUS;
-            cmdStatus = PQcmdStatus(imp_sth->result);
-            if (0 == strncmp(cmdStatus, "INSERT", 6)) {
-                /* INSERT(space)oid(space)numrows */
-                for (ret=8; cmdStatus[ret-1] != ' '; ret++) {
-                }
-                ret = atol(cmdStatus + ret);
-                gotrows = DBDPG_TRUE;
-            }
-            else if (0 == strncmp(cmdStatus, "MOVE", 4)) {
-                ret = atol(cmdStatus + 5);
-                gotrows = DBDPG_TRUE;
-            }
-            else if (0 == strncmp(cmdStatus, "DELETE", 6)
-                     || 0 == strncmp(cmdStatus, "UPDATE", 6)
-                     || 0 == strncmp(cmdStatus, "SELECT", 6)) {
-                ret = atol(cmdStatus + 7);
-                gotrows = DBDPG_TRUE;
-            }
-            else if (0 == strncmp(cmdStatus, "MERGE", 5)) {
-                ret = atol(cmdStatus + 6);
-                gotrows = DBDPG_TRUE;
-            }
-        }
-        if (!gotrows) {
-            /* No rows affected, but check for change of state */
-            TRACE_PQTRANSACTIONSTATUS;
-            if (PQTRANS_IDLE == PQtransactionStatus(imp_dbh->conn)) {
-                imp_dbh->done_begin = DBDPG_FALSE;
-                /* If begin_work has been called, turn AutoCommit back on and BegunWork off */
-                if (DBIc_has(imp_dbh, DBIcf_BegunWork)!=0) {
-                    DBIc_set(imp_dbh, DBIcf_AutoCommit, 1);
-                    DBIc_set(imp_dbh, DBIcf_BegunWork, 0);
-                }
-            }
-            if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (OK, no rows)\n", THEADER_slow);
-            return 0;
-        }
-    }
-    else if (PGRES_COPY_OUT == status || PGRES_COPY_IN == status || PGRES_COPY_BOTH == status) {
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sStatus was PGRES_COPY_%s\n",
-                THEADER_slow, PGRES_COPY_OUT == status ? "OUT" : PGRES_COPY_IN == status ? "IN" : "BOTH");
-        /* Copy Out/In data transfer in progress */
-        imp_dbh->copystate = status;
-        imp_dbh->copybinary = PQbinaryTuples(imp_sth->result);
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (COPY)\n", THEADER_slow);
-        return -1;
-    }
-    else {
-        if (TRACE5_slow) TRC(DBILOGFP, "%sInvalid status returned (%d)\n", THEADER_slow, status);
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ sth, status, PQerrorMessage(imp_dbh->conn));
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error: bad status)\n", THEADER_slow);
-        return -2;
-    }
-    
     /* store the number of affected rows */
-    
     imp_sth->rows = ret;
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (rows: %ld)\n", THEADER_slow, ret);
