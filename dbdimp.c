@@ -122,7 +122,7 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
                     async_result_handler *, void *arg,
                     char *caller);
 
-static long handle_query_result(PGresult *, int, SV *, void *);
+static long handle_query_result(PGresult *, int, SV *, imp_dbh_t *, void *);
 
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
@@ -3560,7 +3560,7 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
 
     rows = 0;
     if (res_handler)
-        rows = res_handler(result, status, dbh, arg);
+        rows = res_handler(result, status, dbh, imp_dbh, arg);
 
     return rows;
 }
@@ -4098,6 +4098,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         imp_sth->async_status = STH_ASYNC;
         imp_dbh->async_sth = imp_sth;
+
         imp_dbh->async_status = DBH_ASYNC;
         if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (async)\n", THEADER_slow);
         return 0;
@@ -5140,10 +5141,9 @@ static int savepoint_action(SV * dbh, imp_dbh_t * imp_dbh, char *cmd, char *save
     return 1;
 }
 
-static long after_savepoint(PGresult *unused, int status, SV *h, void *arg)
+static long after_savepoint(PGresult *unused, int status, SV *h, imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
-    D_imp_dbh(h);
     long rc;
 
     switch (status) {
@@ -5203,10 +5203,9 @@ static int have_savepoint(imp_dbh_t *imp_dbh, char const *savepoint)
 
 
 /* ================================================================== */
-static long after_release(PGresult *unused, int status, SV *h, void *arg)
+static long after_release(PGresult *unused, int status, SV *h, imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
-    D_imp_dbh(h);
     long rc;
 
     switch (status) {
@@ -5750,11 +5749,10 @@ int dbd_st_blob_read (SV * sth, imp_sth_t * imp_sth, int lobjId, long offset, lo
 /* 
    Return the result of an asynchronous query, waiting if needed
 */
-static long handle_query_result(PGresult *result, int status, SV *h,
+static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *imp_dbh,
                                 void *unused)
 {
     dTHX;
-    D_imp_dbh(h);
     imp_sth_t *imp_sth;
     char *cmdStatus;
     long rows;
@@ -5886,8 +5884,9 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
             continue;
         }
 
-        rows = imp_dbh->async_result.handler(result, status, h,
+        rows = imp_dbh->async_result.handler(result, status, h, imp_dbh,
                                              imp_dbh->async_result.arg);
+
         if (NULL != imp_dbh->async_sth) {
             /* Free the last_result as needed */
             if (imp_dbh->last_result && imp_dbh->result_clearable) {

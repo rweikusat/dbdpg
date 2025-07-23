@@ -22,7 +22,7 @@ struct async_action_st {
 };
 typedef struct async_action_st async_action_t;
 
-typedef long async_result_handler(PGresult *, int, SV *, void *);
+typedef long async_result_handler(PGresult *, int, SV *, imp_dbh_t *, void *);
 
 struct imp_dbh_st {
     dbih_dbc_t com;            /* MUST be first element in structure */
