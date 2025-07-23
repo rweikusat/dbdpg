@@ -5142,9 +5142,29 @@ static long after_savepoint(PGresult *unused, int status, SV *h, void *arg)
 {
     dTHX;
     D_imp_dbh(h);
+    long rc;
 
-    if (PGRES_COMMAND_OK == status) av_push(imp_dbh->savepoints, newSVpv(arg, 0));
+    switch (status) {
+    case PGRES_COMMAND_OK:
+        av_push(imp_dbh->savepoints, newSVpv(arg, 0));
+        rc = 0;
+        break;
+
+    case PGRES_FATAL_ERROR:
+        if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
+            async_action_cleanup(imp_dbh);
+            rc = 0;
+            break;
+        }
+
+    default:
+        TRACE_PQERRORMESSAGE;
+        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
+        rc = -2;
+    }
+
     safefree(arg);
+    return rc;
 }
 
 int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
@@ -5185,9 +5205,29 @@ static long after_release(PGresult *unused, int status, SV *h, void *arg)
 {
     dTHX;
     D_imp_dbh(h);
+    long rc;
 
-    if (PGRES_COMMAND_OK == status) pg_db_free_savepoints_to(aTHX_ imp_dbh, arg);
+    switch (status) {
+    case PGRES_COMMAND_OK:
+        pg_db_free_savepoints_to(aTHX_ imp_dbh, arg);
+        rc = 0;
+        break;
+
+    case PGRES_FATAL_ERROR:
+        if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
+            async_action_cleanup(imp_dbh);
+            rc = 0;
+            break;
+        }
+
+    default:
+        TRACE_PQERRORMESSAGE;
+        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
+        rc = -2;
+    }
+
     safefree(arg);
+    return rc;
 }
 
 int pg_db_rollback_to(SV * dbh, imp_dbh_t * imp_dbh, char *savepoint)
