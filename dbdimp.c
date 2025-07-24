@@ -5770,6 +5770,7 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     case PGRES_NONFATAL_ERROR:
         if (TRACE5_slow)
             TRC(DBILOGFP, "%sStatus is non-fatal errors\n", THEADER_slow);
+
         rows = -2;
         TRACE_PQERRORMESSAGE;
         pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
