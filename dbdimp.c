@@ -5685,7 +5685,7 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     imp_sth = imp_dbh->async_sth;
     if (!imp_sth) imp_sth = p;
 
-    switch ((int)status) {
+    switch (status) {
     case PGRES_TUPLES_OK:
         if (TRACE5_slow) TRC(DBILOGFP,
                              "%sStatus is PGRES_TUPLES_OK, fields=%d, tuples=%ld\n",
