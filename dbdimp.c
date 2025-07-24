@@ -5704,6 +5704,7 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
         }
 
         break;
+
     case PGRES_COMMAND_OK:
         if (TRACE5_slow)
             TRC(DBILOGFP, "%sStatus is PGRES_COMMAND_OK\n", THEADER_slow);
