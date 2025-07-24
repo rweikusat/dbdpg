@@ -3572,7 +3572,6 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     dTHX;
     D_imp_dbh(dbh);
     ExecStatusType          status = PGRES_FATAL_ERROR; /* Assume the worst */
-    PGTransactionStatusType txn_status;
     char *                  cmdStatus = NULL;
     long                    rows = 0;
 
@@ -3589,7 +3588,7 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
     }
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (rows: %ld, txn_status: %d)\n",
-                  THEADER_slow, rows, txn_status);
+                       THEADER_slow, rows, PQtransactionStatus(imp_dbh->conn));
     return rows;
 
 } /* end of pg_quickexec */
