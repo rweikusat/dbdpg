@@ -5687,6 +5687,10 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
 
     switch ((int)status) {
     case PGRES_TUPLES_OK:
+        if (TRACE5_slow) TRC(DBILOGFP,
+                             "%sStatus is PGRES_TUPLES_OK, fields=%d, tuples=%ld\n",
+                             THEADER_slow, n_fields, rows);
+
         TRACE_PQNTUPLES;
         rows = PQntuples(result);
         n_fields = PQnfields(result);
@@ -5698,9 +5702,6 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
             DBIc_ACTIVE_on(imp_sth);
         }
 
-        if (TRACE5_slow) TRC(DBILOGFP,
-                             "%sStatus is PGRES_TUPLES_OK, fields=%d, tuples=%ld\n",
-                             THEADER_slow, n_fields, rows);
         break;
     case PGRES_COMMAND_OK:
         if (TRACE5_slow)
