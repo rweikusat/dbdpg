@@ -3588,19 +3588,6 @@ long pg_quickexec (SV * dbh, const char * sql, const int asyncflag)
         return 0;
     }
 
-    TRACE_PQTRANSACTIONSTATUS;
-    txn_status = PQtransactionStatus(imp_dbh->conn);
-
-    if (PQTRANS_IDLE == txn_status) {
-        imp_dbh->done_begin = DBDPG_FALSE;
-        imp_dbh->copystate=0;
-        /* If begin_work has been called, turn AutoCommit back on and BegunWork off */
-        if (DBIc_has(imp_dbh, DBIcf_BegunWork)!=0) {
-            DBIc_set(imp_dbh, DBIcf_AutoCommit, 1);
-            DBIc_set(imp_dbh, DBIcf_BegunWork, 0);
-        }
-    }
-
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_quickexec (rows: %ld, txn_status: %d)\n",
                   THEADER_slow, rows, txn_status);
     return rows;
