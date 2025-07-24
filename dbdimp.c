@@ -5693,11 +5693,12 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
 
         TRACE_PQNTUPLES;
         rows = PQntuples(result);
+
+        TRACE_PQNFIELDS;
         n_fields = PQnfields(result);
 
         if (imp_sth) {
             imp_sth->cur_tuple = 0;
-            TRACE_PQNFIELDS;
             DBIc_NUM_FIELDS(imp_sth) = n_fields;
             DBIc_ACTIVE_on(imp_sth);
         }
