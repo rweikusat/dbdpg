@@ -5832,8 +5832,6 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         return -2;
     }
 
-    imp_dbh->copystate = 0; /* Assume not in copy mode until told otherwise */
-
     TRACE_PQGETRESULT;
     while ((result = PQgetResult(imp_dbh->conn)) != NULL) {
         /* TODO: Better multiple result-set handling */
