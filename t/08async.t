@@ -505,15 +505,16 @@ is ($res, 2, $t);
 
     $$dbh{pg_use_async} = 1;
     $$dbh{AutoCommit} = 0;
-    $dbh->do{'select 123');
+    DBI->trace(15);
+
+    $dbh->do('select 123');
 
     $t=q{pg_ping returns 2 when async query is active};
-    is ($dbh->pg_ping(), 2, $t};
+    is ($dbh->pg_ping(), 2, $t);
 
     $dbh->pg_result();
 
     $t=q{Dbh async status is 1 after async ping};
-    $$dbh{pg_use_async} = 1;
     $rc = $dbh->pg_ping();
     is ($$dbh{pg_async_status}, 1, $t);
 
@@ -528,6 +529,8 @@ is ($res, 2, $t);
 
     $t=q{Async ping result is 3 when idle in txn};
     is($rc, 3, $t);
+
+    DBI->trace(0);
 
     $$dbh{pg_use_async} = 0;
     $$dbh{AutoCommit} = 0;

@@ -819,6 +819,7 @@ static long handle_ping_result(PGresult *result, int status, SV *h, imp_dbh_t *i
                                void *unused)
 {
     dTHX;
+    PGTransactionStatusType tstatus;
 
     if (PGRES_EMPTY_QUERY != status) {
         /* As a safety measure, check PQstatus as well */
@@ -832,7 +833,12 @@ static long handle_ping_result(PGresult *result, int status, SV *h, imp_dbh_t *i
         return -3;
     }
 
-    return 1+pg_db_txn_status(aTHX_ imp_dbh);
+
+    tstatus = pg_db_txn_status(aTHX_ imp_dbh);
+
+    if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_ping_result, tstatus %d\n",
+                       THEADER_slow, tstatus);
+    return 1 + tstatus;
 }
 
 int dbd_db_ping (SV * dbh)
@@ -875,7 +881,7 @@ int dbd_db_ping (SV * dbh)
         imp_dbh->async_result.handler = handle_ping_result;
         imp_dbh->async_result.arg = NULL;
 
-        return 0;
+        return 1;
     }
 
     result = PQexec(imp_dbh->conn, "/* DBD::Pg ping test v3.18.0 */");
@@ -883,6 +889,7 @@ int dbd_db_ping (SV * dbh)
     rc = handle_ping_result(result, status, dbh, imp_dbh, NULL);
     PQclear(result);
 
+    if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_pg_ping (result: %d)\n", THEADER_slow, rc);
     return rc;
 }
 
