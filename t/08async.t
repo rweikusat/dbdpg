@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 81;
+plan tests => 82;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -501,10 +501,15 @@ is ($res, 2, $t);
 }
 
 {
+    my $rc;
+
     $t=q{Dbh async status is 1 after async ping};
     $$dbh{pg_use_async} = 1;
-    $dbh->pg_ping();
+    $rc = $dbh->pg_ping();
     is ($$dbh{pg_async_status}, 1, $t);
+
+    $t=q{Async pg_ping returned 1};
+    is ($rc, 1, $t);
 
     $t=q{Database method pg_result works after async ping};
     eval {
