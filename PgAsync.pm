@@ -2835,6 +2835,11 @@ The value returned indicates the current state:
 Additional information on why a handle is not valid can be obtained by using the
 L</pg_ping> method.
 
+When asynchronous mode is enabled (C<pg_use_async> is 1), a return
+value of 1 means the test query was successfully sent to the
+server. The actual result of the ping will become available as return
+value of C<pg_result> after the test query has finished.
+
 =head3 B<pg_ping>
 
   $rv = $dbh->pg_ping;
