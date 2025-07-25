@@ -4245,6 +4245,10 @@ that would have been returned by the asynchronous L</do> or L</execute> if it ha
 
   $result = $dbh->pg_result;
 
+B<The method will (mis-)handle queries containing more than one SQL
+statement exactly like C<PQexec> does: It'll discard all PGresult
+objects except the last.>
+
 =back
 
 =head3 Asynchronous Connect
