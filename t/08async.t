@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 82;
+plan tests => 84;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -503,6 +503,15 @@ is ($res, 2, $t);
 {
     my $rc;
 
+    $$dbh{pg_use_async} = 1;
+    $$dbh{AutoCommit} = 0;
+    $dbh->do{'select 123');
+
+    $t=q{pg_ping returns 2 when async query is active};
+    is ($dbh->pg_ping(), 2, $t};
+
+    $dbh->pg_result();
+
     $t=q{Dbh async status is 1 after async ping};
     $$dbh{pg_use_async} = 1;
     $rc = $dbh->pg_ping();
@@ -513,11 +522,15 @@ is ($res, 2, $t);
 
     $t=q{Database method pg_result works after async ping};
     eval {
-        $dbh->pg_result();
+        $rc = $dbh->pg_result();
     };
     is ($@, q{}, $t);
 
+    $t=q{Async ping result is 3 when idle in txn};
+    is($rc, 3, $t);
+
     $$dbh{pg_use_async} = 0;
+    $$dbh{AutoCommit} = 0;
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
