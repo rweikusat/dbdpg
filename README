@@ -4,14 +4,7 @@
 
 Sort of the remaining async issues as documented in the issues file.
 
-In preparation for enabling async ping, this has some pretty major
-changes. In particular, handling of asynchronous query results is now
-done via callback stored in the imp_dbh structure and the three
-different sets of ordinary query handling code (in pg_quickexec,
-dbd_st_execute and pg_db_result) have been unified into a single
-subroutine called handle_query_result which is either invoked directly
-or passed to pg_db_result as callback.
-
+Async ping is now suppored. See manpage for details.
 
 DBD::PgAsync
 ------------
