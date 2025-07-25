@@ -815,6 +815,26 @@ static ExecStatusType _sqlstate(pTHX_ imp_dbh_t * imp_dbh, PGresult * result)
 
 
 /* ================================================================== */
+static long handle_ping_result(PGresult *result, int status, SV *h, imp_dbh_t *imp_dbh,
+                               void *unused)
+{
+    dTHX;
+
+    if (PGRES_EMPTY_QUERY != status) {
+        /* As a safety measure, check PQstatus as well */
+        if (CONNECTION_BAD == PQstatus(imp_dbh->conn)) {
+            if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_pg_ping (PQstatus returned CONNECTION_BAD)\n", THEADER_slow);
+            return -4;
+        }
+
+        if (TEND_slow) TRC(DBILOGFP, "%sEnd handle_ping_result: unexpected query status %d\n",
+                           THEADER_slow, status);
+        return -3;
+    }
+
+    return 1+pg_db_txn_status(aTHX_ imp_dbh);
+}
+
 int dbd_db_ping (SV * dbh)
 {
     dTHX;
@@ -822,6 +842,7 @@ int dbd_db_ping (SV * dbh)
     PGTransactionStatusType tstatus;
     ExecStatusType          status;
     PGresult              * result;
+    int rc;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_db_ping\n", THEADER_slow);
 
@@ -832,40 +853,38 @@ int dbd_db_ping (SV * dbh)
 
     tstatus = pg_db_txn_status(aTHX_ imp_dbh);
     if (TRACE5_slow) TRC(DBILOGFP, "%sdbd_db_ping txn_status is %d\n", THEADER_slow, tstatus);
+    switch (tstatus) {
+    case PQTRANS_IDLE:
+    case PQTRANS_INTRANS:
+    case PQTRANS_INERROR:
+        break;
 
-    if (tstatus >= PQTRANS_UNKNOWN) { /* Unknown, so we err on the side of "bad" */
+    case PQTRANS_ACTIVE:
+        return 2;
+
+    default:
         if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_pg_ping (result: -2 unknown/bad)\n", THEADER_slow);
         return -2;
     }
 
-    /* No matter what state we are in, send an empty query to the backend */
+    if (imp_dbh->use_async) {
+        rc = PQsendQuery(imp_dbh->conn, "/* flabasel */");
+        if (!rc) return -3;
+
+        imp_dbh->async_status = DBH_ASYNC;
+        imp_dbh->async_result.handler = handle_ping_result;
+        imp_dbh->async_result.arg = NULL;
+
+        return 0;
+    }
+
     result = PQexec(imp_dbh->conn, "/* DBD::Pg ping test v3.18.0 */");
     status = PQresultStatus(result);
+    rc = handle_ping_result(result, status, dbh, imp_dbh, NULL);
     PQclear(result);
-    if (PGRES_FATAL_ERROR == status) {
-        /* Something very bad, usually indicating the backend is gone */
-        return -3;
-    }
 
-    /* We expect to see an empty query most times */
-    if (PGRES_EMPTY_QUERY == status) {
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_pg_ping (PGRES_EMPTY_QUERY)\n", THEADER_slow);
-        return 1+tstatus;
-        /* 0=idle 1=active 2=intrans 3=inerror 4=unknown */
-    }
-
-    /* As a safety measure, check PQstatus as well */
-    if (CONNECTION_BAD == PQstatus(imp_dbh->conn)) {
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_pg_ping (PQstatus returned CONNECTION_BAD)\n", THEADER_slow);
-        return -4;
-    }
-
-    if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_pg_ping\n", THEADER_slow);
-
-    return 1+tstatus;
-
-} /* end of dbd_db_ping */
- 
+    return rc;
+}
 
 /* ================================================================== */
 static PGTransactionStatusType pg_db_txn_status (pTHX_ imp_dbh_t * imp_dbh)
