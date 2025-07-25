@@ -5808,6 +5808,38 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     return rows;
 }
 
+static PGresult *handle_next_result_set(imp_dbh_t *imp_dbh)
+{
+    dTHX;
+    PGresult *r0, *r1;
+
+    /*
+      For a query containing a single statement, exactly one PGresult
+      object followed by a null pointer will be returned. The
+      transaction status associated with the connection will indicate
+      that a command is presently active until this null pointer has
+      been dequeued.
+
+      For multiple results, the function below is functionally
+      identical to the DBD::Pg implementation, just with less churn
+      (ie, it won't set rows and fields values in control structures
+      which will end up being overwritten if another result needs to
+      be processed).
+    */
+
+    TRACE_PQGETRESULT;
+    r0 = PQgetResult(imp_dbh->conn);
+    while (r1 = PQgetResult(imp_dbh->conn), r1) {
+        if (TRACE5_slow) TRC(DBILOGFP, "%sDiscarding intermediate result\n", THEADER_slow);
+        TRACE_PQCLEAR;
+        PQclear(r0);
+
+        r0 = r1;
+    }
+
+    return r0;
+}
+
 long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 {
     dTHX;
@@ -5832,32 +5864,28 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         return -2;
     }
 
-    TRACE_PQGETRESULT;
-    while ((result = PQgetResult(imp_dbh->conn)) != NULL) {
-        /* TODO: Better multiple result-set handling */
-        status = _sqlstate(aTHX_ imp_dbh, result);
+    result = handle_next_result_set(imp_dbh);
+    status = _sqlstate(aTHX_ imp_dbh, result);
+    while (PGRES_COMMAND_OK == status && imp_dbh->aa_first) {
+        TRACE_PQCLEAR;
+        PQclear(result);
 
-        if (PGRES_COMMAND_OK == status && imp_dbh->aa_first)   {
-            TRACE_PQCLEAR;
-            PQclear(result);
-
-            TRACE_PQGETRESULT;
-            result = PQgetResult(imp_dbh->conn);
-            if (result) croak("cannot handle intermediate queries with more than one result");
-
-            rows = handle_async_action(h, imp_dbh, "pg_db_result");
-            if (AA_ERROR == rows) {
-                rows = -2;
-                break;
-            }
-            if (AA_CANCELLED == rows) {
-                rows = 0;
-                break;
-            }
-
-            continue;
+        rows = handle_async_action(h, imp_dbh, "pg_db_result");
+        if (AA_ERROR == rows) {
+            rows = -2;
+            break;
+        }
+        if (AA_CANCELLED == rows) {
+            rows = -1;
+            break;
         }
 
+        result = handle_next_result_set(imp_dbh);
+        status = _sqlstate(aTHX_ imp_dbh, result);
+    }
+
+    switch (rows) {
+    case 0:
         rows = imp_dbh->async_result.handler(result, status, h, imp_dbh,
                                              imp_dbh->async_result.arg);
 
@@ -5888,6 +5916,13 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
             TRACE_PQCLEAR;
             PQclear(result);
         }
+        break;
+
+    case -1:
+        rows = 0;
+        break;
+
+    case -2:
     }
 
     if (NULL != imp_dbh->async_sth) {
@@ -5901,7 +5936,6 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_result (rows: %ld)\n", THEADER_slow, rows);
     return rows;
 } /* end of pg_db_result */
-
 
 /* ================================================================== */
 /* 
