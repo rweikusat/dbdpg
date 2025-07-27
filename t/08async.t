@@ -505,7 +505,6 @@ is ($res, 2, $t);
 
     $$dbh{pg_use_async} = 1;
     $$dbh{AutoCommit} = 0;
-    DBI->trace(15);
 
     $dbh->do('select 123');
 
@@ -530,10 +529,8 @@ is ($res, 2, $t);
     $t=q{Async ping result is 3 when idle in txn};
     is($rc, 3, $t);
 
-    DBI->trace(0);
-
     $$dbh{pg_use_async} = 0;
-    $$dbh{AutoCommit} = 0;
+    $$dbh{AutoCommit} = 1;
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
