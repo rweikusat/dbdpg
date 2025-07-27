@@ -1037,6 +1037,7 @@ int dbd_db_rollback (SV * dbh, imp_dbh_t * imp_dbh)
 int dbd_db_disconnect (SV * dbh, imp_dbh_t * imp_dbh)
 {
     dTHX;
+    int x;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_db_disconnect\n", THEADER_slow);
 
@@ -1047,9 +1048,14 @@ int dbd_db_disconnect (SV * dbh, imp_dbh_t * imp_dbh)
     
     if (NULL != imp_dbh->conn) {
         /* Attempt a rollback */
+        x = imp_dbh->use_async;
+        imp_dbh->use_async = 0;
+
         if (0 != dbd_db_rollback(dbh, imp_dbh) && TRACE5_slow)
             TRC(DBILOGFP, "%sdbd_db_disconnect: AutoCommit=off -> rollback\n", THEADER_slow);
-        
+
+        imp_dbh->use_async = x;
+
         TRACE_PQFINISH;
         PQfinish(imp_dbh->conn);
         imp_dbh->conn = NULL;
