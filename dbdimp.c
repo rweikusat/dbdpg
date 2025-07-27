@@ -5961,7 +5961,7 @@ static int handle_between_result(imp_dbh_t *imp_dbh)
 
     status = PGRES_COMMAND_OK;
     TRACE_PQGETRESULT;
-    while ((result = PQgetResult(imp_dbh->conn))) {
+    while (result = PQgetResult(imp_dbh->conn), result) {
         ret = _sqlstate(aTHX_ imp_dbh, result);
         if (PGRES_COMMAND_OK != ret) status = ret;
 
