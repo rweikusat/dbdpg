@@ -1,7 +1,6 @@
 remaining async issues
 ----------------------
 
-        - rollback-on-disconnect probably broken when pg_use_async true
         - async notification support?
 	- auto-rollback on deallocate is synchronous-only
         - large object support?
