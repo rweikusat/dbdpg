@@ -1,6 +1,6 @@
 remaining async issues
 ----------------------
 
-	- auto-rollback on deallocate is synchronous-only
+	- deallocate is synchronous
         - large object support?
         
