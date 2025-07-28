@@ -1,7 +1,6 @@
 remaining async issues
 ----------------------
 
-        - async notification support?
 	- auto-rollback on deallocate is synchronous-only
         - large object support?
         
