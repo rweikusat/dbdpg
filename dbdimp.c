@@ -2020,7 +2020,7 @@ SV * pg_db_pg_notifies (SV * dbh, imp_dbh_t * imp_dbh)
     av_push(ret, payloadsv);
 
     TRACE_PQFREEMEM;
-     PQfreemem(notify);
+    PQfreemem(notify);
 
     retsv = newRV_inc(sv_2mortal((SV*)ret));
 
