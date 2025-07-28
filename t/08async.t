@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 84;
+plan tests => 85;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -531,6 +531,26 @@ is ($res, 2, $t);
 
     $$dbh{pg_use_async} = 0;
     $$dbh{AutoCommit} = 1;
+}
+
+{
+    $t=q{Sychronous rollback on disconnect even if async mode is enabled};
+
+    my ($dbh2, $dbh3, $rc);
+
+    $dbh2 = $dbh->clone();
+    $dbh3 = $dbh2->clone();
+
+    $dbh2->do('create table t (x int)');
+
+    $$dbh3{AutoCommit} = 0;
+    $dbh3->do('insert into t (x) values (1)');
+
+    $$dbh3{pg_use_async} = 0;
+    $dbh3->disconnect();
+
+    $rc = $dbh2->do('select * from t');
+    is (0 + $rc, 0, $t);
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
