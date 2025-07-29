@@ -123,6 +123,7 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
                     char *caller);
 
 static long handle_query_result(PGresult *, int, SV *, imp_dbh_t *, void *);
+static PGresult *handle_next_result_set(imp_dbh_t *);
 
 /* ================================================================== */
 void dbd_init (dbistate_t *dbistate)
@@ -132,18 +133,18 @@ void dbd_init (dbistate_t *dbistate)
 }
 
 /* ================================================================== */
-static void add_async_action(char *arg,
-                             char *(*action)(imp_dbh_t *, char *),
-                             void (*after)(imp_dbh_t *),
-                             imp_dbh_t *imp_dbh)
+static void add_async_action(async_doit *doit, void *doit_arg,
+                             async_result_handler *handle_result, void *result_handler_arg)
 {
     async_action_t *aa;
 
     Newx(aa, 1, async_action_t);
     aa->p = NULL;
-    aa->arg = arg;
-    aa->action = action;
-    aa->after = after;
+
+    aa->action.doit = doit;
+    aa->action.arg = doit_arg;
+    aa->result.handler = handle_result;
+    aa->result.arg = result_handler_arg;
 
     *imp_dbh->aa_pp = aa;
     imp_dbh->aa_pp = &aa->p;
