@@ -13,16 +13,24 @@ struct imp_drh_st {
 };
 
 /* Define dbh implementor data structure */
+typedef char *async_doit(imp_dbh_t *, void *);
+typedef long async_result_handler(PGresult *, int, SV *, imp_dbh_t *, void *);
+
 struct async_action_st {
     struct async_action_st *p;
 
-    char *arg;
-    char *(*action)(imp_dbh_t *, char *);
-    void (*after)(imp_dbh_t *);
-};
-typedef struct async_action_st async_action_t;
+    struct {
+        async_doit *doit;
+        void *arg;
+    } action;
 
-typedef long async_result_handler(PGresult *, int, SV *, imp_dbh_t *, void *);
+    struct {
+        async_result_handler *handle;
+        void *arg;
+    } result;
+};
+
+typedef struct async_action_st async_action_t;
 
 struct imp_dbh_st {
     dbih_dbc_t com;            /* MUST be first element in structure */
