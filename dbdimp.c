@@ -1,4 +1,4 @@
-/*
+*
 
   Copyright (c) 2002-2025 Greg Sabino Mullane and others: see the Changes file
   Portions Copyright (c) 2002 Jeffrey W. Baker
@@ -242,18 +242,27 @@ static char *send_async_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
     return ret ? NULL : pg_call;
 }
 
-static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
+static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *our_call)
 {
     async_action_t *aa;
+    long rc;
     imp_sth_t *imp_sth;
     char *pq_call;
+    int status;
     dTHX;
 
     if (TRACE5_slow) TRC(DBILOGFP, "%sHandling aa action\n", THEADER_slow);
 
+    status = _sqlstate(aTHX imp_dbh, res);
+
     aa = imp_dbh->aa_first;
-    if (aa->after) aa->after(imp_dbh);
+    rc = 0;
+    if (aa->result.handler) {
+        rc = aa->result.handler(res, status, h, imp_dbh, aa->result.arg);
     async_action_done(imp_dbh);
+
+    aa = imp_dbh->aa_first;
+    if (!aa) return rc;
 
     imp_sth = imp_dbh->async_sth;
     if (STH_ASYNC_CANCELLED == imp_sth->async_status) {
@@ -264,24 +273,7 @@ static int handle_async_action(SV *h, imp_dbh_t *imp_dbh, char *our_call)
         return AA_CANCELLED;
     }
 
-    pq_call = NULL;
-    aa = imp_dbh->aa_first;
-    if (aa) 
-        pq_call = aa->action(imp_dbh, aa->arg);
-    else {
-        imp_sth = imp_dbh->async_sth;
-        pq_call = send_async_query(imp_dbh, imp_sth);
-
-        if (!pq_call && TEMP_STH == imp_sth->async_flag){
-            if (TRACE5_slow) TRC(DBILOGFP, "%sFreeing temp sth\n", THEADER_slow);
-
-            Safefree(imp_sth->statement);
-            Safefree(imp_sth);
-
-            imp_dbh->async_sth = NULL;
-        }
-    }
-
+    pq_call = aa->action.doit(imp_dbh, aa->action.arg);
     if (pq_call) {
         async_action_error(h, imp_dbh, our_call, pq_call);
         return AA_ERROR;
@@ -5871,13 +5863,14 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         return -2;
     }
 
-    result = handle_next_result_set(imp_dbh);
-    status = _sqlstate(aTHX_ imp_dbh, result);
-    while (PGRES_COMMAND_OK == status && imp_dbh->aa_first) {
+    while (1) {
+        result = handle_next_result_set(imp_dbh);
+        rows = handle_async_action(result, imp_dbh, "pg_db_result");
+        if (!imp_dbh->aa_first) break;
+
         TRACE_PQCLEAR;
         PQclear(result);
 
-        rows = handle_async_action(h, imp_dbh, "pg_db_result");
         if (AA_ERROR == rows) {
             rows = -2;
             break;
@@ -5886,9 +5879,6 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
             rows = -1;
             break;
         }
-
-        result = handle_next_result_set(imp_dbh);
-        status = _sqlstate(aTHX_ imp_dbh, result);
     }
 
     switch (rows) {
@@ -5954,33 +5944,10 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
    0 if the query is still running
    -2 for other errors
 */
-static int pg_db_ready_error(SV *h, imp_dbh_t *imp_dbh, char *pq_call)
-{
-    async_action_error(h, imp_dbh, "pg_db_ready", pq_call);
-    return -2;
-}
-
-static int handle_between_result(imp_dbh_t *imp_dbh)
-{
-    PGresult *result;
-    int ret, status;
-    dTHX;
-
-    status = PGRES_COMMAND_OK;
-    TRACE_PQGETRESULT;
-    while (result = PQgetResult(imp_dbh->conn), result) {
-        ret = _sqlstate(aTHX_ imp_dbh, result);
-        if (PGRES_COMMAND_OK != ret) status = ret;
-
-        PQclear(result);
-    }
-
-    return status;
-}
-
 int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
 {
     char *pg_call;
+    PGresult *res;
     int rc;
     dTHX;
 
@@ -6011,13 +5978,9 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (!PQisBusy(imp_dbh->conn)) {
         rc = 1;
 
-        if (imp_dbh->aa_first) {
-            rc = handle_between_result(imp_dbh);
-            if (PGRES_COMMAND_OK != rc) return pg_db_ready_error(h, imp_dbh, 
-                                                                 STH_ASYNC_PREPARE == imp_dbh->async_sth->async_status ?
-                                                                 "PQsendPrepare" : "PQsendQuery");
-
-            rc = handle_async_action(h, imp_dbh, "pg_db_ready");
+        if (imp_dbh->aa_first->p) {
+            res = handle_next_result_set(imp_dbh);
+            rc = handle_async_action(res, h, imp_dbh, "pg_db_ready");
             switch (rc) {
             case AA_OK:
                 rc = 0;
@@ -6031,6 +5994,9 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
                 rc = 1;
                 imp_dbh->async_status = DBH_ASYNC_CANCELLING;
             }
+
+            TRACE_PQCLEAR;
+            PQclear(res);
         }
     }
 
