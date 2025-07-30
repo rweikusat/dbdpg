@@ -2,9 +2,9 @@
 | remaining-issues
 `----
 
-Sort of the remaining async issues as documented in the issues file.
+WIP pushed to GitHub for backup.
 
-Async ping is now suppored. See manpage for details.
+WILL NOT COMPILE IN ITS PRESENT STATE.
 
 DBD::PgAsync
 ------------
