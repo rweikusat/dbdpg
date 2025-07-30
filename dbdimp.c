@@ -134,7 +134,8 @@ void dbd_init (dbistate_t *dbistate)
 
 /* ================================================================== */
 static void add_async_action(async_doit *doit, void *doit_arg,
-                             async_result_handler *handle_result, void *result_handler_arg)
+                             async_result_handler *handle_result, void *result_handler_arg,
+                             imp_dbh_t *imp_dbh)
 {
     async_action_t *aa;
 
@@ -143,7 +144,7 @@ static void add_async_action(async_doit *doit, void *doit_arg,
 
     aa->action.doit = doit;
     aa->action.arg = doit_arg;
-    aa->result.handler = handle_result;
+    aa->result.handle = handle_result;
     aa->result.arg = result_handler_arg;
 
     *imp_dbh->aa_pp = aa;
@@ -253,12 +254,12 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
 
     if (TRACE5_slow) TRC(DBILOGFP, "%sHandling aa action\n", THEADER_slow);
 
-    status = _sqlstate(aTHX imp_dbh, res);
+    status = _sqlstate(aTHX_ imp_dbh, res);
 
     aa = imp_dbh->aa_first;
     rc = 0;
-    if (aa->result.handler) {
-        rc = aa->result.handler(res, status, h, imp_dbh, aa->result.arg);
+    if (aa->result.handle)
+        rc = aa->result.handle(res, status, h, imp_dbh, aa->result.arg);
     async_action_done(imp_dbh);
 
     aa = imp_dbh->aa_first;
@@ -295,7 +296,8 @@ static char *aa_send_query(imp_dbh_t *imp_dbh, char *qry)
     return ret ? NULL : "PQsendQuery";
 }
 
-static void aa_after_begin(imp_dbh_t *imp_dbh)
+static long aa_after_begin(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_dbh,
+                           void *unused1)
 {
     imp_dbh->done_begin = DBDPG_TRUE;
 }
@@ -870,10 +872,8 @@ int dbd_db_ping (SV * dbh)
         rc = PQsendQuery(imp_dbh->conn, "/* flabasel */");
         if (!rc) return -3;
 
-        imp_dbh->async_status = DBH_ASYNC;
-        imp_dbh->async_result.handler = handle_ping_result;
-        imp_dbh->async_result.arg = NULL;
-
+        add_async_action(NULL, NULL, handle_ping_result, NULL,
+                         imp_dbh);
         return 1;
     }
 
@@ -964,8 +964,9 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         TRACE_PQSENDQUERY;
         status = PQsendQuery(imp_dbh->conn, action ? "commit" : "rollback");
         status = status ? PGRES_COMMAND_OK : PGRES_FATAL_ERROR;
-        imp_dbh->async_result.handler = handle_query_result;
-        imp_dbh->async_result.arg = NULL;
+
+        add_async_action(NULL, NULL, handle_query_result, NULL,
+                         imp_dbh);
 
         /*
           Code in DBI.xs DBI_dispatch function will try to "fix" the state
@@ -2834,8 +2835,8 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
                                imp_sth->PQoids);
         if (status) {
             imp_sth->async_status = STH_ASYNC_PREPARE;
-            imp_dbh->async_result.handler = handle_query_result;
-            imp_dbh->async_result.arg = NULL;
+            add_async_action(NULL, NULL, handle_query_result, NULL,
+                             imp_dbh);
         } else {
             status = PGRES_FATAL_ERROR;
             _fatal_sqlstate(aTHX_ imp_dbh);
