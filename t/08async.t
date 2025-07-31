@@ -236,7 +236,7 @@ SKIP: {
     $t=q{Database method pg_result returns 0 after query was cancelled};
     $dbh->pg_cancel();
     $res = $dbh->pg_result();
-    is (0+$res, 0, $t);
+    ok (defined($res) && (0 + $res == 0), $t);
 } ## end of pg_sleep skip
 
 $t=q{Method execute() works when prepare has PG_ASYNC flag};
