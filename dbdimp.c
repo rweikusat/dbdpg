@@ -292,7 +292,7 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
 
     pq_call = aa->action.doit(imp_dbh, aa->action.arg);
     if (pq_call) {
-        async_action_error(h, imp_dbh, our_call, pq_call);
+        async_action_error(h, imp_dbh, PGRES_FATAL_ERROR, our_call, pq_call);
         return AA_ERR;
     }
 
