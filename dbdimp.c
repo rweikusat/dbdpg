@@ -205,12 +205,14 @@ static int pqtype_from_sth(imp_sth_t *imp_sth)
     return PQTYPE_EXEC;
 }
 
-static char *send_async_query(imp_dbh_t *imp_dbh, imp_sth_t *imp_sth)
+static char *send_async_query(imp_dbh_t *imp_dbh, void *p)
 {
     dTHX;
     char *pg_call;
+    imp_sth_t *imp_sth;
     int ret;
 
+    imp_sth = p;
     imp_sth->async_status = STH_ASYNC;
 
     switch (pqtype_from_sth(imp_sth)) {
@@ -3567,6 +3569,8 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
             sth->statement = savepv(sql);
 
             imp_dbh->async_sth = sth;
+            add_async_action(send_async_query, sth, handle_query_result, NULL,
+                             imp_dbh);
         } else {
             TRACE_PQSENDQUERY;
             if (! PQsendQuery(imp_dbh->conn, sql)) {
@@ -3996,7 +4000,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 ret = PQsendQueryParams
                     (imp_dbh->conn, stmt, imp_sth->numphs,
                      imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
-            }
+            } else
+                add_async_action(send_async_query, imp_sth, handle_query_result, NULL,
+                                 imp_dbh);
         }
         else {
 
