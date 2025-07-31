@@ -299,7 +299,7 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
     return AA_OK;
 }
 
-static char *aa_send_query(imp_dbh_t *imp_dbh, char *qry)
+static char *aa_send_query(imp_dbh_t *imp_dbh, void *qry)
 {
     dTHX;
     int ret;
@@ -316,9 +316,11 @@ static long aa_after_begin(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_
                            void *unused1)
 {
     imp_dbh->done_begin = DBDPG_TRUE;
+    return 0;
 }
 
-static void aa_after_prepare(imp_dbh_t *imp_dbh)
+static long aa_after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_dbh,
+                             void *unused1)
 {
     imp_sth_t *imp_sth;
 
@@ -327,6 +329,8 @@ static void aa_after_prepare(imp_dbh_t *imp_dbh)
     imp_sth = imp_dbh->async_sth;
     imp_sth->prepared_by_us = DBDPG_TRUE;
     imp_sth->async_status = STH_ASYNC;
+
+    return 0;
 }
 
 /* ================================================================== */
@@ -3553,9 +3557,9 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with %s\n", THEADER_slow, caller);
         if (want_begin) {
             aa_send_query(imp_dbh, "begin");
-            add_async_action(NULL, NULL, aa_after_begin, imp_dbh);
-            if (imp_dbh->txn_read_only) add_async_action("set transaction read only",
-                                                         aa_send_query, NULL, imp_dbh);
+            add_async_action(NULL, NULL, aa_after_begin, NULL, imp_dbh);
+            if (imp_dbh->txn_read_only) add_async_action(aa_send_query, "set transaction read only",
+                                                         NULL, NULL, imp_dbh);
 
             Newxz(sth, 1, imp_sth_t);
             sth->async_flag = 8;
@@ -3578,8 +3582,7 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
         }
 
         imp_dbh->async_status = DBH_ASYNC;
-        imp_dbh->async_result.handler = res_handler;
-        imp_dbh->async_result.arg = arg;
+        add_async_action(NULL, NULL, res_handler, arg, imp_dbh);
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (async)\n", THEADER_slow, caller);
         return STMT_SENT;
@@ -3699,7 +3702,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     default:
         if (imp_sth == imp_dbh->async_sth
             && STH_ASYNC_PREPARE == imp_sth->async_status) {
-            add_async_action(NULL, NULL, aa_after_prepare, imp_dbh);
+            add_async_action(NULL, NULL, aa_after_prepare, NULL, imp_dbh);
             break;
         }
 
@@ -4035,7 +4038,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 return -2;
             }
             if (STH_ASYNC_PREPARE == imp_sth->async_status)
-                add_async_action(NULL, NULL, aa_after_prepare, imp_dbh);
+                add_async_action(NULL, NULL, aa_after_prepare, NULL, imp_dbh);
         } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
             if (TRACE5_slow) TRC(DBILOGFP, "%swaiting for async preprare to complete (%s)\n",
                                  THEADER_slow, imp_sth->prepare_name);
@@ -4113,17 +4116,17 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (want_begin) {
             if (!imp_dbh->aa_first) {
                 aa_send_query(imp_dbh, "begin");
-                add_async_action(NULL, NULL, aa_after_begin, imp_dbh);
+                add_async_action(NULL, NULL, aa_after_begin, NULL, imp_dbh);
             } else
-                add_async_action("begin", aa_send_query, aa_after_begin, imp_dbh);
+                add_async_action(aa_send_query, "begin", aa_after_begin, NULL,
+                                 imp_dbh);
 
             if (imp_dbh->txn_read_only)
-                add_async_action("set transaction read only", aa_send_query,
-                                 NULL, imp_dbh);
+                add_async_action(aa_send_query, "set transaction read only",
+                                 NULL, NULL, imp_dbh);
         }
 
-        imp_dbh->async_result.handler = handle_query_result;
-        imp_dbh->async_result.arg = NULL;
+        add_async_action(NULL, NULL, handle_query_result, NULL, imp_dbh);
 
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         imp_sth->async_status = STH_ASYNC;
@@ -5882,13 +5885,13 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 
     while (1) {
         result = handle_next_result_set(imp_dbh);
-        rows = handle_async_action(result, imp_dbh, "pg_db_result");
+        rows = handle_async_action(result, h, imp_dbh, "pg_db_result");
         if (!imp_dbh->aa_first) break;
 
         TRACE_PQCLEAR;
         PQclear(result);
 
-        if (AA_ERROR == rows) {
+        if (AA_ERR == rows) {
             rows = -2;
             break;
         }
@@ -5984,8 +5987,11 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     strcpy(imp_dbh->sqlstate, "00000");
 
     TRACE_PQCONSUMEINPUT;
-    if (!PQconsumeInput(imp_dbh->conn))
-        return pg_db_ready_error(h, imp_dbh, "PQconsumeInput");
+    if (!PQconsumeInput(imp_dbh->conn)) {
+        async_action_error(h, imp_dbh, PGRES_FATAL_ERROR,
+                           "PQconsumeInput", "pg_db_ready");
+        return -2;
+    }
 
     rc = 0;
     TRACE_PQISBUSY;
@@ -6000,7 +6006,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
                 rc = 0;
                 break;
 
-            case AA_ERROR:
+            case AA_ERR:
                 rc = -2;
                 break;
 
