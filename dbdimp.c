@@ -90,9 +90,9 @@ enum {
 };
 
 enum {
-    AA_OK,
-    AA_ERROR,
-    AA_CANCELLED
+    AA_OK = 0,
+    AA_ERR = -1,
+    AA_CANCELLED = -2
 };
 
 enum {
@@ -257,7 +257,20 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
 
     status = _sqlstate(aTHX_ imp_dbh, res);
     switch (status) {
+    case PGRES_FATAL_ERROR:
+        if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
+            async_action_cleanup(imp_dbh);
+            return AA_CANCELLED;
+        }
 
+    case PGRES_BAD_RESPONSE:
+    case PGRES_NONFATAL_ERROR:
+        if (TRACE5_slow)
+            TRC(DBILOGFP, "%sError status is %d\n", status, THEADER_slow);
+
+        async_action_error(h, imp_dbh, status, our_call, "PQgetResult");
+        return AA_ERR;
+    }
 
     aa = imp_dbh->aa_first;
     rc = 0;
@@ -280,7 +293,7 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
     pq_call = aa->action.doit(imp_dbh, aa->action.arg);
     if (pq_call) {
         async_action_error(h, imp_dbh, our_call, pq_call);
-        return AA_ERROR;
+        return AA_ERR;
     }
 
     return AA_OK;
