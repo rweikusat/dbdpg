@@ -5900,9 +5900,6 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
 
     switch (rows) {
     case 0:
-        rows = imp_dbh->async_result.handler(result, status, h, imp_dbh,
-                                             imp_dbh->async_result.arg);
-
         if (NULL != imp_dbh->async_sth) {
             /* Free the last_result as needed */
             if (imp_dbh->last_result && imp_dbh->result_clearable) {
