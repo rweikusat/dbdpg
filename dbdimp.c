@@ -5939,10 +5939,11 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
         break;
 
     case -1:
-        rows = 0;
+        rows = -2;
         break;
 
     case -2:
+        rows = 0;
     }
 
     if (NULL != imp_dbh->async_sth) {
