@@ -182,6 +182,7 @@ static void async_action_cleanup(imp_dbh_t *imp_dbh)
 }
 
 static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
+                               int status,
                                char *our_call, char *pq_call)
 {
     dTHX;
@@ -192,7 +193,7 @@ static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
     async_action_cleanup(imp_dbh);
 
     TRACE_PQERRORMESSAGE;
-    pg_error(aTHX_ h, PGRES_FATAL_ERROR, PQerrorMessage(imp_dbh->conn));
+    pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
     if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (error: %s failed)\n",
                        THEADER_slow, our_call, pq_call);
 }
@@ -255,6 +256,8 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
     if (TRACE5_slow) TRC(DBILOGFP, "%sHandling aa action\n", THEADER_slow);
 
     status = _sqlstate(aTHX_ imp_dbh, res);
+    switch (status) {
+
 
     aa = imp_dbh->aa_first;
     rc = 0;
