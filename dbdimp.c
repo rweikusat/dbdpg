@@ -350,17 +350,24 @@ static char *aa_send_query(imp_dbh_t *imp_dbh, void *qry)
     return ret ? NULL : "PQsendQuery";
 }
 
-static long aa_after_begin(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_dbh,
+static long after_begin(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_dbh,
                            void *unused1)
 {
+    if (PGRES_COMMAND_OK != status)
+        warn_nocontext("unexpected status after begin: %d(%s)", status, pgres_2_name(status));
+
+
     imp_dbh->done_begin = DBDPG_TRUE;
     return 0;
 }
 
-static long aa_after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_dbh,
-                             void *unused1)
+static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_dbh,
+                          void *unused1)
 {
     imp_sth_t *imp_sth;
+
+    if (PGRES_COMMAND_OK != status)
+        warn_nocontext("unexpected status after prepare: %d(%s)", status, pgres_2_name(status));
 
     ++imp_dbh->prepare_number;
 
