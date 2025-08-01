@@ -4129,8 +4129,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             }
         }
     } /* end new-style prepare */
-        
-    /* Some form of PQexec* or PQsend* has been run at this point */
 
     /* If running asynchronously, we don't stick around for the result */
     if (imp_sth->async_flag & PG_ASYNC) {
@@ -4153,6 +4151,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (async)\n", THEADER_slow);
         return 0;
     }
+
+    /* Some form of PQexec* or PQsend* has been run at this point */
 
     status = _sqlstate(aTHX_ imp_dbh, imp_sth->result);
     ret = handle_query_result(imp_sth->result, status, sth, imp_dbh, imp_sth);
