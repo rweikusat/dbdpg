@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 87;
+plan tests => 89;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -566,6 +566,26 @@ is ($res, 2, $t);
     is_deeply ($row, ['123'], $t);
 
     $$dbh{pg_use_async} = 0;
+}
+
+{
+    $t=q{pg_ready works with prep statements};
+    $$dbh{pg_use_async} = 1;
+    $$dbh{AutoCommit} = 0;
+    $$dbh{ReadOnly} = 1;
+
+    my $sth = $dbh->prepare('select 123');
+    $sth->execute();
+    1 until $dbh->pg_ready();
+    my $rows = $dbh->pg_result();
+    is ($rows, 1, $t);
+
+    my $row = $sth->fetchrow_arrayref();
+    is_deeply ($row, ['123'], $t);
+
+    $$dbh{pg_use_async} = 0;
+    $$dbh{ReadOnly} = 0;
+    $$dbh{AutoCommit} = 1;
 }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
