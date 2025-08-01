@@ -303,7 +303,8 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
     case PGRES_BAD_RESPONSE:
     case PGRES_NONFATAL_ERROR:
         if (TRACE5_slow)
-            TRC(DBILOGFP, "%sError status is %d\n", status, THEADER_slow);
+            TRC(DBILOGFP, "%sError status is %s (%d)\n",
+                pgres_2_name(status), status, THEADER_slow);
 
         async_action_error(h, imp_dbh, status, our_call, "PQgetResult");
         return AA_ERR;
