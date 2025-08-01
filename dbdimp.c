@@ -173,6 +173,9 @@ static void add_async_action(async_doit *doit, void *doit_arg,
     aa->result.handle = handle_result;
     aa->result.arg = result_handler_arg;
 
+    if (!imp_dbh->aa_first && doit)
+        doit(imp_dbh, doit_arg);
+
     *imp_dbh->aa_pp = aa;
     imp_dbh->aa_pp = &aa->p;
 }
