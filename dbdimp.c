@@ -929,6 +929,7 @@ int dbd_db_ping (SV * dbh)
         rc = PQsendQuery(imp_dbh->conn, "/* flabasel */");
         if (!rc) return -3;
 
+        imp_dbh->async_status = DBH_ASYNC;
         add_async_action(NULL, NULL, handle_ping_result, NULL,
                          imp_dbh);
         return 1;
