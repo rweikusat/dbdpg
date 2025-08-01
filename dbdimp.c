@@ -5752,13 +5752,6 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
         break;
 
     case PGRES_COMMAND_OK:
-        /* async prepare */
-        if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
-            imp_sth->prepared_by_us = DBDPG_TRUE;
-            ++imp_dbh->prepare_number;
-            break;
-        }
-
         /* non-select statement */
         TRACE_PQCMDSTATUS;
         cmdStatus = PQcmdStatus(result);
