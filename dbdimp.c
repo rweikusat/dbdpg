@@ -5129,10 +5129,9 @@ static int savepoint_action(SV * dbh, imp_dbh_t * imp_dbh, char *cmd, char *save
 static long after_savepoint(PGresult *unused, int status, SV *h, imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
-    long rc;
 
     if (PGRES_COMMAND_OK != status)
-        warn_nocontext("unexpected status after savepoint op: %d(%s)", status, pgres_2_name(status));
+        warn_nocontext("unexpected status after savepoint: %d(%s)", status, pgres_2_name(status));
 
     av_push(imp_dbh->savepoints, newSVpv(arg, 0));
     safefree(arg);
@@ -5177,29 +5176,14 @@ static int have_savepoint(imp_dbh_t *imp_dbh, char const *savepoint)
 static long after_release(PGresult *unused, int status, SV *h, imp_dbh_t *imp_dbh, void *arg)
 {
     dTHX;
-    long rc;
 
-    switch (status) {
-    case PGRES_COMMAND_OK:
-        pg_db_free_savepoints_to(aTHX_ imp_dbh, arg);
-        rc = 0;
-        break;
+    if (PGRES_COMMAND_OK != status)
+        warn_nocontext("unexpected status after releasep: %d(%s)", status, pgres_2_name(status));
 
-    case PGRES_FATAL_ERROR:
-        if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
-            async_action_cleanup(imp_dbh);
-            rc = 0;
-            break;
-        }
-
-    default:
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
-        rc = -2;
-    }
-
+    pg_db_free_savepoints_to(aTHX_ imp_dbh, arg);
     safefree(arg);
-    return rc;
+
+    return 0;
 }
 
 int pg_db_rollback_to(SV * dbh, imp_dbh_t * imp_dbh, char *savepoint)
