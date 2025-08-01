@@ -304,7 +304,7 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
     case PGRES_NONFATAL_ERROR:
         if (TRACE5_slow)
             TRC(DBILOGFP, "%sError status is %s (%d)\n",
-                pgres_2_name(status), status, THEADER_slow);
+                THEADER_slow, pgres_2_name(status), status);
 
         async_action_error(h, imp_dbh, status, our_call, "PQgetResult");
         return AA_ERR;
@@ -343,7 +343,7 @@ static char *aa_send_query(imp_dbh_t *imp_dbh, void *qry)
     int ret;
 
     if (TRACE5_slow) TRC(DBILOGFP, "%sSending aa query '%s'\n",
-                         THEADER_slow, qry);
+                         THEADER_slow, (char *)qry);
 
     TRACE_PQSENDQUERY;
     ret = PQsendQuery(imp_dbh->conn, qry);
@@ -5729,7 +5729,7 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     imp_sth = imp_dbh->async_sth;
     if (!imp_sth) imp_sth = p;
 
-    if (TRACE5_slow) TRC(DBILOGFP, "%Status is %s(%d)\n",
+    if (TRACE5_slow) TRC(DBILOGFP, "%sStatus is %s(%d)\n",
                          THEADER_slow, pgres_2_name(status), status);
 
     switch (status) {
