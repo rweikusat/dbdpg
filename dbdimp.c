@@ -5729,6 +5729,9 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     imp_sth = imp_dbh->async_sth;
     if (!imp_sth) imp_sth = p;
 
+    if (TRACE5_slow) TRC(DBILOGFP, "%Status is %s(%d)\n",
+                         THEADER_slow, pgres_2_name(status), status);
+
     switch (status) {
     case PGRES_TUPLES_OK:
         TRACE_PQNTUPLES;
@@ -5737,8 +5740,7 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
         TRACE_PQNFIELDS;
         n_fields = PQnfields(result);
 
-        if (TRACE5_slow) TRC(DBILOGFP,
-                             "%sStatus is PGRES_TUPLES_OK, fields=%d, tuples=%ld\n",
+        if (TRACE5_slow) TRC(DBILOGFP, "%sfields=%d, tuples=%ld\n",
                              THEADER_slow, n_fields, rows);
 
         if (imp_sth) {
@@ -5750,9 +5752,6 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
         break;
 
     case PGRES_COMMAND_OK:
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sStatus is PGRES_COMMAND_OK\n", THEADER_slow);
-
         /* async prepare */
         if (imp_sth && STH_ASYNC_PREPARE == imp_sth->async_status) {
             imp_sth->prepared_by_us = DBDPG_TRUE;
@@ -5799,10 +5798,6 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     case PGRES_COPY_OUT:
     case PGRES_COPY_IN:
     case PGRES_COPY_BOTH:
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sStatus is PGRES_COPY_%s\n",
-                THEADER_slow, PGRES_COPY_OUT == status ? "OUT" : PGRES_COPY_IN == status ? "IN" : "BOTH");
-
         /* Copy Out/In data transfer in progress */
         imp_dbh->copystate = status;
         imp_dbh->copybinary = PQbinaryTuples(result);
@@ -5812,9 +5807,6 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
     case PGRES_EMPTY_QUERY:
     case PGRES_BAD_RESPONSE:
     case PGRES_NONFATAL_ERROR:
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sStatus is non-fatal errors\n", THEADER_slow);
-
         rows = -2;
         TRACE_PQERRORMESSAGE;
         pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
@@ -5828,13 +5820,9 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
         }
 
     default:
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sStatus is fatal error/ invalid\n", THEADER_slow);
-
         rows = -2;
         TRACE_PQERRORMESSAGE;
         pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
-        break;
     }
 
     return rows;
