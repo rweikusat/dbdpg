@@ -244,7 +244,7 @@ static char *send_async_query(imp_dbh_t *imp_dbh, void *p)
     switch (pqtype_from_sth(imp_sth)) {
     case PQTYPE_PREPARED:
         if (TRACE5_slow)
-            TRC(DBILOGFP, "%sSending prepared %s", THEADER_slow, imp_sth->prepare_name);
+            TRC(DBILOGFP, "%sSending prepared %s\n", THEADER_slow, imp_sth->prepare_name);
 
         pg_call = "PQsendQueryPrepared";
 
@@ -257,7 +257,7 @@ static char *send_async_query(imp_dbh_t *imp_dbh, void *p)
 
     case PQTYPE_PARAMS:
         if (TRACE5_slow)
-            TRC(DBILOGFP, "%sSending %s", THEADER_slow, imp_sth->statement);
+            TRC(DBILOGFP, "%sSending %s\n", THEADER_slow, imp_sth->statement);
 
         pg_call = "PQsendQueryParams";
 
@@ -270,7 +270,7 @@ static char *send_async_query(imp_dbh_t *imp_dbh, void *p)
 
     case PQTYPE_EXEC:
         if (TRACE5_slow)
-            TRC(DBILOGFP, "%sSending %s", THEADER_slow, imp_sth->statement);
+            TRC(DBILOGFP, "%sSending %s\n", THEADER_slow, imp_sth->statement);
 
         pg_call = "PQsendQuery";
 
