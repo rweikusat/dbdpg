@@ -3603,7 +3603,7 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with %s\n", THEADER_slow, caller);
         if (want_begin) {
             aa_send_query(imp_dbh, "begin");
-            add_async_action(NULL, NULL, aa_after_begin, NULL, imp_dbh);
+            add_async_action(NULL, NULL, after_begin, NULL, imp_dbh);
             if (imp_dbh->txn_read_only) add_async_action(aa_send_query, "set transaction read only",
                                                          NULL, NULL, imp_dbh);
 
@@ -3748,11 +3748,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         croak("Must wait for async connect to finish before issuing commands");
 
     default:
-        if (imp_sth == imp_dbh->async_sth
-            && STH_ASYNC_PREPARE == imp_sth->async_status) {
-            add_async_action(NULL, NULL, aa_after_prepare, NULL, imp_dbh);
+        if (imp_sth == imp_dbh->async_sth && STH_ASYNC_PREPARE == imp_sth->async_status)
             break;
-        }
 
         croak("Must wait for async query to finish before issuing more commands");
     }
@@ -4085,8 +4082,6 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 if (TEND_slow) TRC(DBILOGFP, "%sEnd dbd_st_execute (error)\n", THEADER_slow);
                 return -2;
             }
-            if (STH_ASYNC_PREPARE == imp_sth->async_status)
-                add_async_action(NULL, NULL, aa_after_prepare, NULL, imp_dbh);
         } else if (STH_ASYNC_PREPARE == imp_sth->async_status) {
             if (TRACE5_slow) TRC(DBILOGFP, "%swaiting for async preprare to complete (%s)\n",
                                  THEADER_slow, imp_sth->prepare_name);
@@ -4164,9 +4159,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (want_begin) {
             if (!imp_dbh->aa_first) {
                 aa_send_query(imp_dbh, "begin");
-                add_async_action(NULL, NULL, aa_after_begin, NULL, imp_dbh);
+                add_async_action(NULL, NULL, after_begin, NULL, imp_dbh);
             } else
-                add_async_action(aa_send_query, "begin", aa_after_begin, NULL,
+                add_async_action(aa_send_query, "begin", after_begin, NULL,
                                  imp_dbh);
 
             if (imp_dbh->txn_read_only)
