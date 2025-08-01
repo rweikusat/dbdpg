@@ -3609,10 +3609,10 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
                                    THEADER_slow, caller);
                 return STMT_ERR;
             }
+            add_async_action(NULL, NULL, res_handler, arg, imp_dbh);
         }
 
         imp_dbh->async_status = DBH_ASYNC;
-        add_async_action(NULL, NULL, res_handler, arg, imp_dbh);
 
         if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (async)\n", THEADER_slow, caller);
         return STMT_SENT;
@@ -4156,9 +4156,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
             if (imp_dbh->txn_read_only)
                 add_async_action(aa_send_query, "set transaction read only",
                                  NULL, NULL, imp_dbh);
-        }
-
-        add_async_action(NULL, NULL, handle_query_result, NULL, imp_dbh);
+            add_async_action(send_async_query, imp_sth, handle_query_result, NULL, imp_dbh);
+        } else
+            add_async_action(NULL, NULL, handle_query_result, NULL, imp_dbh);
 
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         imp_sth->async_status = STH_ASYNC;
