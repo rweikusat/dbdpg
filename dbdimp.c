@@ -3604,7 +3604,7 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
             sth->statement = savepv(sql);
 
             imp_dbh->async_sth = sth;
-            add_async_action(send_async_query, sth, handle_query_result, arg,
+            add_async_action(send_async_query, sth, res_handler, arg,
                              imp_dbh);
         } else {
             TRACE_PQSENDQUERY;
