@@ -2,9 +2,14 @@
 | remaining-issues
 `----
 
-WIP pushed to GitHub for backup.
+This has the async support code completely reworked to prepare for
+supporting async deallocate for both PostgreSQL < 17 and PostgreSQL >=
+17. The special-casing of "the async query" and result handler in the
+imp_dbh_t structure is gone. A 'normal' async action structure will
+now also be used for this.
 
-WILL NOT COMPILE IN ITS PRESENT STATE.
+This works for all my test cases but I just completed it today.
+
 
 DBD::PgAsync
 ------------
