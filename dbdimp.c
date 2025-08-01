@@ -5131,27 +5131,13 @@ static long after_savepoint(PGresult *unused, int status, SV *h, imp_dbh_t *imp_
     dTHX;
     long rc;
 
-    switch (status) {
-    case PGRES_COMMAND_OK:
-        av_push(imp_dbh->savepoints, newSVpv(arg, 0));
-        rc = 0;
-        break;
+    if (PGRES_COMMAND_OK != status)
+        warn_nocontext("unexpected status after savepoint op: %d(%s)", status, pgres_2_name(status));
 
-    case PGRES_FATAL_ERROR:
-        if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
-            async_action_cleanup(imp_dbh);
-            rc = 0;
-            break;
-        }
-
-    default:
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
-        rc = -2;
-    }
-
+    av_push(imp_dbh->savepoints, newSVpv(arg, 0));
     safefree(arg);
-    return rc;
+
+    return 0;
 }
 
 int pg_db_savepoint (SV * dbh, imp_dbh_t * imp_dbh, char * savepoint)
