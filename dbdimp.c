@@ -3947,14 +3947,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (TSQL)
             TRC(DBILOGFP, "%s;\n\n", stmt);
 
-        if (imp_sth->async_flag & PG_ASYNC) {
-            if (!want_begin) {
-                TRACE_PQSENDQUERY;
-                ret = PQsendQuery(imp_dbh->conn, stmt);
-            }
-        }
-        else {
-
+        if (!(imp_sth->async_flag & PG_ASYNC)) {
             /* Free the last_result as needed, even if happens to be owned by us */
             if (imp_dbh->last_result && imp_dbh->result_clearable) {
                 TRACE_PQCLEAR;
@@ -4038,16 +4031,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow, stmt);
 
-        if (imp_sth->async_flag & PG_ASYNC) {
-            if (!want_begin) {
-                TRACE_PQSENDQUERYPARAMS;
-                ret = PQsendQueryParams
-                    (imp_dbh->conn, stmt, imp_sth->numphs,
-                     imp_sth->PQoids, imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
-            }
-        }
-        else {
-
+        if (!(imp_sth->async_flag & PG_ASYNC)) {
             /* Free the last_result as needed, even if happens to be owned by us */
             if (imp_dbh->last_result && imp_dbh->result_clearable) {
                 TRACE_PQCLEAR;
@@ -4116,16 +4100,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 TRC(DBILOGFP, ");\n\n");
             }
 
-            if (imp_sth->async_flag & PG_ASYNC) {
-                if (!want_begin) {
-                    TRACE_PQSENDQUERYPREPARED;
-                    ret = PQsendQueryPrepared
-                        (imp_dbh->conn, imp_sth->prepare_name, imp_sth->numphs,
-                         imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts, 0);
-                }
-            }
-            else {
-
+            if (!(imp_sth->async_flag & PG_ASYNC)) {
                 /* Free the last_result as needed, even if happens to be owned by us */
                 if (imp_dbh->last_result && imp_dbh->result_clearable) {
                     TRACE_PQCLEAR;
@@ -4160,22 +4135,15 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     /* If running asynchronously, we don't stick around for the result */
     if (imp_sth->async_flag & PG_ASYNC) {
         if (want_begin) {
-            if (!imp_dbh->aa_first) {
-                aa_send_query(imp_dbh, "begin");
-                add_async_action(NULL, NULL, after_begin, NULL, imp_dbh);
-            } else
-                add_async_action(aa_send_query, "begin", after_begin, NULL,
-                                 imp_dbh);
+            add_async_action(aa_send_query, "begin", after_begin, NULL,
+                             imp_dbh);
 
             if (imp_dbh->txn_read_only)
                 add_async_action(aa_send_query, "set transaction read only",
                                  NULL, NULL, imp_dbh);
-            add_async_action(send_async_query, imp_sth, handle_query_result, NULL, imp_dbh);
-        } else
-            if (imp_dbh->aa_first)
-                add_async_action(send_async_query, imp_sth, handle_query_result, NULL, imp_dbh);
-            else
-                add_async_action(NULL, NULL, handle_query_result, NULL, imp_dbh);
+        }
+
+        add_async_action(send_async_query, imp_sth, handle_query_result, NULL, imp_dbh);
 
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         imp_sth->async_status = STH_ASYNC;
