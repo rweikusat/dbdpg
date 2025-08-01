@@ -4169,7 +4169,10 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                                  NULL, NULL, imp_dbh);
             add_async_action(send_async_query, imp_sth, handle_query_result, NULL, imp_dbh);
         } else
-            add_async_action(NULL, NULL, handle_query_result, NULL, imp_dbh);
+            if (imp_dbh->aa_first)
+                add_async_action(send_async_query, imp_sth, handle_query_result, NULL, imp_dbh);
+            else
+                add_async_action(NULL, NULL, handle_query_result, NULL, imp_dbh);
 
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         imp_sth->async_status = STH_ASYNC;
