@@ -104,6 +104,32 @@ enum {
     STMT_SENT = -1
 };
 
+static char *pgres_names[] = {
+#define n_(n) [n] = #n
+
+    n_(PGRES_BAD_RESPONSE),
+    n_(PGRES_COMMAND_OK),
+    n_(PGRES_COPY_BOTH),
+    n_(PGRES_COPY_IN),
+    n_(PGRES_COPY_OUT),
+    n_(PGRES_EMPTY_QUERY),
+    n_(PGRES_FATAL_ERROR),
+    n_(PGRES_NONFATAL_ERROR),
+    n_(PGRES_PIPELINE_ABORTED),
+    n_(PGRES_PIPELINE_SYNC),
+    n_(PGRES_SINGLE_TUPLE),
+    n_(PGRES_TUPLES_OK)
+
+#undef n_
+};
+
+static inline char *pgres_2_name(int status)
+{
+    if (status < 0 || status >= sizeof(pgres_names) / sizeof(*pgres_names))
+        return "UNKNOWN";
+    return pgres_names[status];
+}
+
 static void pg_error(pTHX_ SV *h, int error_num, const char *error_msg);
 static void pg_warn (void * arg, const char * message);
 static ExecStatusType _result(pTHX_ imp_dbh_t *imp_dbh, const char *sql);
