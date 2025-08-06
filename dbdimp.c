@@ -359,7 +359,6 @@ static long after_begin(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_dbh
     if (PGRES_COMMAND_OK != status)
         warn_nocontext("unexpected status after begin: %d(%s)", status, pgres_2_name(status));
 
-
     imp_dbh->done_begin = DBDPG_TRUE;
     return 0;
 }
