@@ -79,6 +79,7 @@ struct imp_dbh_st {
     imp_sth_t *do_tmp_sth;      /* temporary sth to refer inside a do() call */
     async_action_t *aa_first, **aa_pp; /* asynchronous actions to be complete before processing of an async command has really finished */
     int       use_async;               /* use async operations for everything */
+    dealloc_t *deallocs;               /* prepared statements to deallocate */
 };
 
 /* Each statement is broken up into segments */
