@@ -4382,12 +4382,15 @@ int dbd_st_finish (SV * sth, imp_sth_t * imp_sth)
 /* ================================================================== */
 static int pg_st_deallocate_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
 {
+#if 0
     D_imp_dbh_from_sth;
     char                    tempsqlstate[6];
     char *                  stmt;
     int                     status;
     PGTransactionStatusType tstatus;
-    
+#endif
+    dealloc_t *dealloc;
+
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_st_deallocate_statement\n", THEADER_slow);
 
     if (imp_dbh->skip_deallocate) {
@@ -4399,7 +4402,8 @@ static int pg_st_deallocate_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_deallocate_statement (0)\n", THEADER_slow);
         return 0;
     }
-    
+
+#if 0
     tempsqlstate[0] = '\0';
 
     /* What is our status? */
@@ -4471,6 +4475,7 @@ static int pg_st_deallocate_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
     if (tempsqlstate[0]) {
         strncpy(imp_dbh->sqlstate, tempsqlstate, 6);
     }
+#endif
 
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_deallocate_statement\n", THEADER_slow);
     return 0;
