@@ -3607,40 +3607,29 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
                     return STMT_ERR;
                 }
             }
+
+            do_pending_deallocs(imp_dbh);
         }
     }
 
     /* Asynchronous commands get kicked off and return undef */
     if (want_async) {
         if (TRACE4_slow) TRC(DBILOGFP, "%sGoing asychronous with %s\n", THEADER_slow, caller);
+        do_pending_deallocs(imp_dbh);
+
         if (want_begin) {
-            aa_send_query(imp_dbh, "begin");
-            add_async_action(NULL, NULL, after_begin, NULL, imp_dbh);
+            add_async_action(aa_send_query, "begin", after_begin, NULL, imp_dbh);
             if (imp_dbh->txn_read_only) add_async_action(aa_send_query, "set transaction read only",
                                                          NULL, NULL, imp_dbh);
-
-            Newxz(sth, 1, imp_sth_t);
-            sth->async_flag = 8;
-            sth->async_status = STH_ASYNC;
-            sth->statement = savepv(sql);
-
-            imp_dbh->async_sth = sth;
-            add_async_action(send_async_query, sth, res_handler, arg,
-                             imp_dbh);
-        } else {
-            TRACE_PQSENDQUERY;
-            if (! PQsendQuery(imp_dbh->conn, sql)) {
-                if (TRACE4_slow) TRC(DBILOGFP, "%sPQsendQuery failed\n", THEADER_slow);
-                _fatal_sqlstate(aTHX_ imp_dbh);
-
-                TRACE_PQERRORMESSAGE;
-                pg_error(aTHX_ dbh, status, PQerrorMessage(imp_dbh->conn));
-                if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (error: PQsendQuery failed)\n",
-                                   THEADER_slow, caller);
-                return STMT_ERR;
-            }
-            add_async_action(NULL, NULL, res_handler, arg, imp_dbh);
         }
+
+        Newxz(sth, 1, imp_sth_t);
+        sth->async_flag = TEMP_STH;
+        sth->async_status = STH_ASYNC;
+        sth->statement = savepv(sql);
+
+        imp_dbh->async_sth = sth;
+        add_async_action(send_async_query, sth, res_handler, arg,
 
         imp_dbh->async_status = DBH_ASYNC;
 
