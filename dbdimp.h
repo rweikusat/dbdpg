@@ -32,12 +32,12 @@ struct async_action_st {
 
 typedef struct async_action_st async_action_t;
 
-struct decalloc_st {
+struct dealloc_st {
     struct dealloc_st *p;
     char *name;
 };
 
-typedef dealloc_st dealloc_t;
+typedef struct dealloc_st dealloc_t;
 
 struct imp_dbh_st {
     dbih_dbc_t com;            /* MUST be first element in structure */
