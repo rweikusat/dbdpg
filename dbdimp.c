@@ -1144,6 +1144,7 @@ int dbd_db_disconnect (SV * dbh, imp_dbh_t * imp_dbh)
 void dbd_db_destroy (SV * dbh, imp_dbh_t * imp_dbh)
 {
     dTHX;
+    dealloc_t *d0, *d1;
 
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_db_destroy\n", THEADER_slow);
 
@@ -1175,6 +1176,14 @@ void dbd_db_destroy (SV * dbh, imp_dbh_t * imp_dbh)
     sv_free((SV *)imp_dbh->savepoints);
     Safefree(imp_dbh->sqlstate);
     while (imp_dbh->aa_first) async_action_done(imp_dbh);
+
+    d1 = imp_dbh->deallocs;
+    while (d0 = d1, d0) {
+        d1 = d1->p;
+
+        safefree(d0->name);
+        safefree(d0);
+    }
 
     DBIc_IMPSET_off(imp_dbh);
 
