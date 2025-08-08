@@ -381,6 +381,25 @@ static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_d
     return 0;
 }
 
+static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
+{
+#if PGLIBVERSION >= 170000
+#else
+#define DEALLOC "deallocate "
+    PGresult *res;
+    char *stmt;
+    unsigned n_len;
+
+    n_len = strlen(name);
+    stmt = safemalloc(sizeof(DEALLOC) + n_len);
+    sprintf(stmt, "%s%s", DEALLOC, name);
+
+    if (imp_dbh->use_async) {
+        add_async_action();
+    }
+#endif
+}
+
 static void do_pending_deallocs(imp_dbh_t *imp_dbh)
 {
     dealloc_t *d0, *d1;
