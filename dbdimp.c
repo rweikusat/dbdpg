@@ -4382,8 +4382,8 @@ int dbd_st_finish (SV * sth, imp_sth_t * imp_sth)
 /* ================================================================== */
 static int pg_st_deallocate_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
 {
-#if 0
     D_imp_dbh_from_sth;
+#if 0
     char                    tempsqlstate[6];
     char *                  stmt;
     int                     status;
@@ -4402,6 +4402,15 @@ static int pg_st_deallocate_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_st_deallocate_statement (0)\n", THEADER_slow);
         return 0;
     }
+
+    Newx(dealloc, 1, dealloc_t);
+    dealloc->name = imp_sth->prepare_name;
+    imp_sth->prepare_name = NULL;
+    dealloc->p = imp_dbh->deallocs;
+    imp_dbh->deallocs = dealloc;
+
+    if (TRACE5_slow)
+        TRC(DBILOGFP, "%sQueued %s for dealloc\n", THEADER_slow, dealloc->name);
 
 #if 0
     tempsqlstate[0] = '\0';
