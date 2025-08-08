@@ -3919,6 +3919,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     }
     
     /* Run one of PQexec (or PQsendQuery), PQexecParams (or PQsendQueryParams), PQexecPrepared (or PQsendQueryPrepared) */
+    do_pending_deallocs(imp_dbh);
 
     if (PQTYPE_EXEC == pqtype) { /* PQexec or PQsendQuery */
         Safefree(imp_sth->statement);
