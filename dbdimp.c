@@ -96,6 +96,7 @@ enum {
 };
 
 enum {
+    DEALLOC_QUOTA = 2,
     TEMP_STH = 8
 };
 
@@ -378,6 +379,28 @@ static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_d
     imp_sth->async_status = STH_ASYNC;
 
     return 0;
+}
+
+static void do_pending_deallocs(imp_dbh_t *imp_dbh)
+{
+    dealloc_t *d0, *d1;
+    unsigned quota;
+
+    quota = DEALLOC_QUOTA;
+    d1 = imp_dbh->deallocs;
+    while ((d0 = d1, d0) && quota) {
+        if (TRACE5_slow) TRC(DBILOGFP, "%sStarting dealloc of %s\n",
+                             THEADER_slow, d0->name);
+        do_dealloc(imp_dbh, d0->name);
+
+        d1 = d0->p;
+        safefree(d0->name);
+        safefree(d0);
+
+        --quota;
+    }
+
+    imp_dbh->deallocs = d0;
 }
 
 /* ================================================================== */
