@@ -3627,9 +3627,9 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
         sth->async_flag = TEMP_STH;
         sth->async_status = STH_ASYNC;
         sth->statement = savepv(sql);
-
         imp_dbh->async_sth = sth;
         add_async_action(send_async_query, sth, res_handler, arg,
+                         imp_dbh);
 
         imp_dbh->async_status = DBH_ASYNC;
 
