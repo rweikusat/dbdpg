@@ -151,7 +151,6 @@ static PGTransactionStatusType pg_db_txn_status (pTHX_ imp_dbh_t *imp_dbh);
 static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
-
 /* will arrange for Safefree(arg) to be called after the result handler ran */
 static long do_stmt(SV *dbh, char const *sql, int want_async,
                     async_result_handler *, void *arg,
