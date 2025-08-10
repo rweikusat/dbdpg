@@ -107,7 +107,8 @@ enum {
 
 enum {
     FREE_A = 1,
-    FREE_R = 2
+    FREE_R = 2,
+    NON_FATAL = 4
 };
 
 static char *pgres_names[] = {
@@ -416,8 +417,8 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
 
     if (imp_dbh->use_async) {
         aa_name = savepv(name);
-        add_async_action(send_close_prepared, aa_name, NULL, NULL, FREE_A,
-                         imp_dbh);
+        add_async_action(send_close_prepared, aa_name, NULL, NULL,
+                         FREE_A | NON_FATAL, imp_dbh);
         return;
     }
 
@@ -437,8 +438,8 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
     sprintf(stmt, "%s%s", DEALLOC, name);
 
     if (imp_dbh->use_async) {
-        add_async_action(aa_send_query, stmt, NULL, NULL, FREE_A,
-                         imp_dbh);
+        add_async_action(aa_send_query, stmt, NULL, NULL,
+                         FREE_A | NON_FATAL, imp_dbh);
         return;
     }
 
