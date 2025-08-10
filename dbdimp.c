@@ -105,6 +105,12 @@ enum {
     STMT_SENT = -1
 };
 
+enum {
+    FREE_A = 1,
+    FREE_R = 2,
+    FREE_BOTH = FREE_A | FREE_R
+};
+
 static char *pgres_names[] = {
 #define n_(n) [n] = #n
 
@@ -145,6 +151,8 @@ static PGTransactionStatusType pg_db_txn_status (pTHX_ imp_dbh_t *imp_dbh);
 static int pg_db_start_txn (pTHX_ SV *dbh, imp_dbh_t *imp_dbh);
 static void pg_db_detect_client_encoding_utf8(pTHX_ imp_dbh_t *imp_dbh);
 
+
+/* will arrange for Safefree(arg) to be called after the result handler ran */
 static long do_stmt(SV *dbh, char const *sql, int want_async,
                     async_result_handler *, void *arg,
                     char *caller);
@@ -162,6 +170,7 @@ void dbd_init (dbistate_t *dbistate)
 /* ================================================================== */
 static void add_async_action(async_doit *doit, void *doit_arg,
                              async_result_handler *handle_result, void *result_handler_arg,
+                             unsigned free_flags,
                              imp_dbh_t *imp_dbh)
 {
     async_action_t *aa;
@@ -173,6 +182,7 @@ static void add_async_action(async_doit *doit, void *doit_arg,
     aa->action.arg = doit_arg;
     aa->result.handle = handle_result;
     aa->result.arg = result_handler_arg;
+    aa->free_flags = free_flags;
 
     if (!imp_dbh->aa_first && doit)
         doit(imp_dbh, doit_arg);
@@ -191,6 +201,8 @@ static void async_action_done(imp_dbh_t *imp_dbh)
     imp_dbh->aa_first = aa->p;
     if (!imp_dbh->aa_first) imp_dbh->aa_pp = &imp_dbh->aa_first;
 
+    if (aa->free_flags & FREE_A) Safefree(aa->action.arg);
+    if (aa->free_flags & FREE_R) Safefree(aa->result.arg);
     Safefree(aa);
 }
 
@@ -395,13 +407,14 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
     sprintf(stmt, "%s%s", DEALLOC, name);
 
     if (imp_dbh->use_async) {
-        add_async_action();
+//        add_async_action();
     }
 #endif
 }
 
 static void do_pending_deallocs(imp_dbh_t *imp_dbh)
 {
+    dTHX;
     dealloc_t *d0, *d1;
     unsigned quota;
 
@@ -983,7 +996,7 @@ int dbd_db_ping (SV * dbh)
         if (!rc) return -3;
 
         imp_dbh->async_status = DBH_ASYNC;
-        add_async_action(NULL, NULL, handle_ping_result, NULL,
+        add_async_action(NULL, NULL, handle_ping_result, NULL, 0,
                          imp_dbh);
         return 1;
     }
@@ -1076,7 +1089,7 @@ static int pg_db_rollback_commit (pTHX_ SV * dbh, imp_dbh_t * imp_dbh, int actio
         status = PQsendQuery(imp_dbh->conn, action ? "commit" : "rollback");
         status = status ? PGRES_COMMAND_OK : PGRES_FATAL_ERROR;
 
-        add_async_action(NULL, NULL, handle_query_result, NULL,
+        add_async_action(NULL, NULL, handle_query_result, NULL, 0,
                          imp_dbh);
 
         /*
@@ -2955,7 +2968,7 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
                                imp_sth->PQoids);
         if (status) {
             imp_sth->async_status = STH_ASYNC_PREPARE;
-            add_async_action(NULL, NULL, after_prepare, NULL,
+            add_async_action(NULL, NULL, after_prepare, NULL, 0,
                              imp_dbh);
         } else {
             status = PGRES_FATAL_ERROR;
@@ -3660,9 +3673,10 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
         do_pending_deallocs(imp_dbh);
 
         if (want_begin) {
-            add_async_action(aa_send_query, "begin", after_begin, NULL, imp_dbh);
+            add_async_action(aa_send_query, "begin", after_begin, NULL, 0,
+                             imp_dbh);
             if (imp_dbh->txn_read_only) add_async_action(aa_send_query, "set transaction read only",
-                                                         NULL, NULL, imp_dbh);
+                                                         NULL, NULL, 0, imp_dbh);
         }
 
         Newxz(sth, 1, imp_sth_t);
@@ -3670,7 +3684,7 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
         sth->async_status = STH_ASYNC;
         sth->statement = savepv(sql);
         imp_dbh->async_sth = sth;
-        add_async_action(send_async_query, sth, res_handler, arg,
+        add_async_action(send_async_query, sth, res_handler, arg, FREE_R,
                          imp_dbh);
 
         imp_dbh->async_status = DBH_ASYNC;
@@ -3697,8 +3711,10 @@ static long do_stmt(SV *dbh, char const *sql, int want_async,
     status = _sqlstate(aTHX_ imp_dbh, imp_dbh->last_result);
 
     rows = 0;
-    if (res_handler)
+    if (res_handler) {
         rows = res_handler(result, status, dbh, imp_dbh, arg);
+        Safefree(arg);
+    }
 
     return rows;
 }
@@ -4174,15 +4190,15 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     /* If running asynchronously, we don't stick around for the result */
     if (imp_sth->async_flag & PG_ASYNC) {
         if (want_begin) {
-            add_async_action(aa_send_query, "begin", after_begin, NULL,
+            add_async_action(aa_send_query, "begin", after_begin, NULL, 0,
                              imp_dbh);
 
             if (imp_dbh->txn_read_only)
                 add_async_action(aa_send_query, "set transaction read only",
-                                 NULL, NULL, imp_dbh);
+                                 NULL, NULL, 0, imp_dbh);
         }
 
-        add_async_action(send_async_query, imp_sth, handle_query_result, NULL, imp_dbh);
+        add_async_action(send_async_query, imp_sth, handle_query_result, NULL, 0, imp_dbh);
 
         if (TRACEWARN_slow) TRC(DBILOGFP, "%sEarly return for async query\n", THEADER_slow);
         imp_sth->async_status = STH_ASYNC;
@@ -5174,8 +5190,6 @@ static long after_savepoint(PGresult *unused, int status, SV *h, imp_dbh_t *imp_
         warn_nocontext("unexpected status after savepoint: %d(%s)", status, pgres_2_name(status));
 
     av_push(imp_dbh->savepoints, newSVpv(arg, 0));
-    safefree(arg);
-
     return 0;
 }
 
@@ -5221,8 +5235,6 @@ static long after_release(PGresult *unused, int status, SV *h, imp_dbh_t *imp_db
         warn_nocontext("unexpected status after releasep: %d(%s)", status, pgres_2_name(status));
 
     pg_db_free_savepoints_to(aTHX_ imp_dbh, arg);
-    safefree(arg);
-
     return 0;
 }
 
