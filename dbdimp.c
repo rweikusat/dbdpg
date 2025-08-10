@@ -107,8 +107,7 @@ enum {
 
 enum {
     FREE_A = 1,
-    FREE_R = 2,
-    FREE_BOTH = FREE_A | FREE_R
+    FREE_R = 2
 };
 
 static char *pgres_names[] = {
