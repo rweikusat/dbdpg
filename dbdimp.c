@@ -305,6 +305,7 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
     dTHX;
 
     if (TRACE5_slow) TRC(DBILOGFP, "%sHandling aa action\n", THEADER_slow);
+    aa = imp_dbh->aa_first;
 
     status = _sqlstate(aTHX_ imp_dbh, res);
     switch (status) {
@@ -320,13 +321,18 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
             TRC(DBILOGFP, "%sError status is %s (%d)\n",
                 THEADER_slow, pgres_2_name(status), status);
 
+        if (aa->flags & NON_FATAL) {
+            warn_nocontext("aa action marked non-fatal had status %s (%d)",
+                           pgres_2_name(status), status);
+            aa = NULL;
+        }
+
         async_action_error(h, imp_dbh, status, our_call, "PQgetResult");
         return AA_ERR;
     }
 
-    aa = imp_dbh->aa_first;
     rc = 0;
-    if (aa->result.handle)
+    if (aa && aa->result.handle)
         rc = aa->result.handle(res, status, h, imp_dbh, aa->result.arg);
     async_action_done(imp_dbh);
 
