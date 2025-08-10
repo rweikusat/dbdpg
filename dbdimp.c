@@ -434,7 +434,7 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
     unsigned n_len;
 
     if (TRACE5_slow)
-        TRC(DBILOGFP, "%sDeallocating (%s)\n", THEADER_slow, name);
+        TRC(DBILOGFP, "%sDeallocating %s\n", THEADER_slow, name);
 
     n_len = strlen(name);
     stmt = safemalloc(sizeof(DEALLOC) + n_len);
