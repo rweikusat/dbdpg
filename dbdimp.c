@@ -397,6 +397,7 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
 #if PGLIBVERSION >= 170000
 #else
 #define DEALLOC "deallocate "
+
     PGresult *res;
     char *stmt;
     unsigned n_len;
@@ -406,8 +407,20 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
     sprintf(stmt, "%s%s", DEALLOC, name);
 
     if (imp_dbh->use_async) {
-//        add_async_action();
+        add_async_action(aa_send_query, stmt, NULL, NULL, FREE_A,
+                         imp_dbh);
+        return;
     }
+
+    TRACE_PQEXEC;
+    res = PQexec(imp_dbh->conn, stmt);
+
+    TRACE_PQCLEAR;
+    PQclear(res);
+
+    Safefree(stmt);
+
+#undef DEALLOC
 #endif
 }
 
