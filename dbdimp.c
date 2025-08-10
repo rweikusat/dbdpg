@@ -169,8 +169,7 @@ void dbd_init (dbistate_t *dbistate)
 /* ================================================================== */
 static void add_async_action(async_doit *doit, void *doit_arg,
                              async_result_handler *handle_result, void *result_handler_arg,
-                             unsigned free_flags,
-                             imp_dbh_t *imp_dbh)
+                             unsigned flags, imp_dbh_t *imp_dbh)
 {
     async_action_t *aa;
 
@@ -181,7 +180,7 @@ static void add_async_action(async_doit *doit, void *doit_arg,
     aa->action.arg = doit_arg;
     aa->result.handle = handle_result;
     aa->result.arg = result_handler_arg;
-    aa->free_flags = free_flags;
+    aa->flags = flags;
 
     if (!imp_dbh->aa_first && doit)
         doit(imp_dbh, doit_arg);
@@ -200,8 +199,8 @@ static void async_action_done(imp_dbh_t *imp_dbh)
     imp_dbh->aa_first = aa->p;
     if (!imp_dbh->aa_first) imp_dbh->aa_pp = &imp_dbh->aa_first;
 
-    if (aa->free_flags & FREE_A) Safefree(aa->action.arg);
-    if (aa->free_flags & FREE_R) Safefree(aa->result.arg);
+    if (aa->flags & FREE_A) Safefree(aa->action.arg);
+    if (aa->flags & FREE_R) Safefree(aa->result.arg);
     Safefree(aa);
 }
 
