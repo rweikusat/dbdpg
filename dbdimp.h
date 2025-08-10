@@ -28,6 +28,8 @@ struct async_action_st {
         async_result_handler *handle;
         void *arg;
     } result;
+
+    unsigned free_flags;
 };
 
 typedef struct async_action_st async_action_t;
