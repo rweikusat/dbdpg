@@ -408,6 +408,7 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
 {
     dTHX;
     PGresult *res;
+    int status;
 
 #if PGLIBVERSION >= 170000
     char *aa_name;
@@ -424,9 +425,6 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
 
     TRACE_PQCLOSEPREPARED;
     res = PQclosePrepared(imp_dbh->conn, name);
-
-    TRACE_PQCLEAR;
-    PQclear(res);
 #else
 #define DEALLOC "deallocate "
 
@@ -448,14 +446,17 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
 
     TRACE_PQEXEC;
     res = PQexec(imp_dbh->conn, stmt);
+    Safefree(stmt);
+#undef DEALLOC
+#endif
+
+    status = PQresultStatus(res);
+    if (PGRES_COMMAND_OK != status)
+        warn_nocontext("Unexpected result of dealloc %s: %s(%d)",
+                       name, pgres_2_name(status), status);
 
     TRACE_PQCLEAR;
     PQclear(res);
-
-    Safefree(stmt);
-
-#undef DEALLOC
-#endif
 }
 
 static void do_pending_deallocs(imp_dbh_t *imp_dbh)
