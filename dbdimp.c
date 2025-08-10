@@ -413,7 +413,7 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
     char *aa_name;
 
     if (TRACE5_slow)
-        TRC(DBILOGFP, "%sUsing PQclosePrepared: %s\n", THEADER_slow, name);
+        TRC(DBILOGFP, "%sPQclosePrepared %s\n", THEADER_slow, name);
 
     if (imp_dbh->use_async) {
         aa_name = savepv(name);
