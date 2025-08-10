@@ -392,6 +392,18 @@ static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_d
     return 0;
 }
 
+#if PGLIBVERSION >= 170000
+static char *send_close_prepared(imp_dbh_t *imp_dbh, void *arg)
+{
+    dTHX;
+    int rc;
+
+    TRACE_PQSENDCLOSEPREPARED;
+    rc = PQsendClosePrepared(imp_dbh->conn, arg);
+    return rc ? NULL : "PQsendClosePrepared";
+}
+#endif
+
 static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
 {
     dTHX;
@@ -411,7 +423,7 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
     }
 
     TRACE_PQCLOSEPREPARED;
-    res = PQclosePrepared(name);
+    res = PQclosePrepared(imp_dbh->conn, name);
 
     TRACE_PQCLEAR;
     PQclear(res);
