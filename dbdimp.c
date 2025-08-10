@@ -394,13 +394,35 @@ static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_d
 
 static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
 {
+    dTHX;
+    PGresult *res;
+
 #if PGLIBVERSION >= 170000
+    char *aa_name;
+
+    if (TRACE5_slow)
+        TRC(DBILOGFP, "%sUsing PQclosePrepared: %s\n", THEADER_slow, name);
+
+    if (imp_dbh->use_async) {
+        aa_name = savepv(name);
+        add_async_action(send_close_prepared, aa_name, NULL, NULL, FREE_A,
+                         imp_dbh);
+        return;
+    }
+
+    TRACE_PQCLOSEPREPARED;
+    res = PQclosePrepared(name);
+
+    TRACE_PQCLEAR;
+    PQclear(res);
 #else
 #define DEALLOC "deallocate "
 
-    PGresult *res;
     char *stmt;
     unsigned n_len;
+
+    if (TRACE5_slow)
+        TRC(DBILOGFP, "%sDeallocating (%s)\n", THEADER_slow, name);
 
     n_len = strlen(name);
     stmt = safemalloc(sizeof(DEALLOC) + n_len);
