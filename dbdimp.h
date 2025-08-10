@@ -29,7 +29,7 @@ struct async_action_st {
         void *arg;
     } result;
 
-    unsigned free_flags;
+    unsigned flags;
 };
 
 typedef struct async_action_st async_action_t;
