@@ -3932,7 +3932,9 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
        5. There are no placeholders
        6. pg_server_prepare is false
     */
-    if (!imp_sth->is_dml
+    if (NULL != imp_sth->prepare_name)
+        pqtype = PQTYPE_PREPARED;
+    else if (!imp_sth->is_dml
         || imp_sth->has_default
         || imp_sth->has_current
         || imp_sth->direct
@@ -3940,16 +3942,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         || !imp_sth->server_prepare
         )
         pqtype = PQTYPE_EXEC;
-    else if (NULL != imp_sth->prepare_name) {
-        pqtype = PQTYPE_PREPARED;
-    }
-    else if (0==imp_sth->switch_prepared || imp_sth->number_iterations < imp_sth->switch_prepared) {
+    else if (0==imp_sth->switch_prepared || imp_sth->number_iterations < imp_sth->switch_prepared)
         pqtype = PQTYPE_PARAMS;
-    }
-    else {
+    else
         pqtype = PQTYPE_PREPARED;
-    }
-    
+
     if (TRACE4_slow) TRC(DBILOGFP, "%sWill use %s\n", 
                          THEADER_slow,
                          pq_x_calls[pqtype][(imp_sth->async_flag & PG_ASYNC) != 0]);
