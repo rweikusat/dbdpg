@@ -181,13 +181,10 @@ static void add_async_action(async_doit *doit, void *doit_arg,
 
     if (!imp_dbh->aa_first && doit) {
         doit(imp_dbh, doit_arg);
-
         aa->action.doit = NULL;
-        aa->action.arg = NULL;
-    } else {
+    } else
         aa->action.doit = doit;
-        aa->action.arg = doit_arg;
-    }
+    aa->action.arg = doit_arg;
 
     aa->result.handle = handle_result;
     aa->result.arg = result_handler_arg;
