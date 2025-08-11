@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 94;
+plan tests => 96;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -614,22 +614,30 @@ is ($res, 2, $t);
 }
 
 {
-    $t=q{test async deallocate};
     my $sth1 = $dbh->prepare('select name from pg_prepared_statements', { pg_prepare_now => 1 });
     my $sth2 = $dbh->prepare('select statement from pg_prepared_statements', { pg_prepare_now => 1 });
     my $sth3 = $dbh->prepare('select count(*) from pg_prepared_statements', { pg_prepare_now => 1 });
-    my ($cnt0, $cnt1);
+    my ($prepd0, $prepd1);
+    my ($queued0, $queued1);
 
     $sth3->execute();
-    $cnt0 = $sth3->fetchrow_arrayref()->[0];
+    $prepd0 = $sth3->fetchrow_arrayref()->[0];
 
     $$dbh{pg_use_async} = 1;
 
+    $queued0 = $dbh->pg_deallocs_queued();
     $sth1 = $sth2 = undef;
+    $queued1 = $dbh->pg_deallocs_queued();
+    is ($queued1, $queued0 + 2, '# of queued deallocs increased as expected');
+
+
     $sth3->execute();
     $dbh->pg_result();
-    $cnt1 = $sth3->fetchrow_arrayref()->[0];
-    is($cnt1, $cnt0 - 2, $t);
+    $prepd1 = $sth3->fetchrow_arrayref()->[0];
+    is($prepd1, $prepd0 - 2, '# of prepared statements decreased as expected');
+
+    $queued0 = $dbh->pg_deallocs_queued();
+    is ($queued0, $queued1 - 2, '# of queued deallocs decreased as expected');
 
     $$dbh{pg_use_async} = 0;
 }
