@@ -167,6 +167,9 @@ void dbd_init (dbistate_t *dbistate)
 }
 
 /* ================================================================== */
+
+/**  auxiliary facilities */
+/*** low-level async action management */
 static void add_async_action(async_doit *doit, void *doit_arg,
                              async_result_handler *handle_result, void *result_handler_arg,
                              unsigned flags, imp_dbh_t *imp_dbh)
@@ -221,6 +224,7 @@ static void async_action_cleanup(imp_dbh_t *imp_dbh)
     while (imp_dbh->aa_first) async_action_done(imp_dbh);
 }
 
+/***  async action execution */
 static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
                                int status,
                                char *our_call, char *pq_call)
@@ -236,63 +240,6 @@ static void async_action_error(SV *h, imp_dbh_t *imp_dbh,
     pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
     if (TEND_slow) TRC(DBILOGFP, "%sEnd %s (error: %s failed)\n",
                        THEADER_slow, our_call, pq_call);
-}
-
-static int pqtype_from_sth(imp_sth_t *imp_sth)
-{
-    if (imp_sth->prepare_name) return PQTYPE_PREPARED;
-    if (imp_sth->numphs) return PQTYPE_PARAMS;
-    return PQTYPE_EXEC;
-}
-
-static char *send_async_query(imp_dbh_t *imp_dbh, void *p)
-{
-    dTHX;
-    char *pg_call;
-    imp_sth_t *imp_sth;
-    int ret;
-
-    imp_sth = p;
-    imp_sth->async_status = STH_ASYNC;
-
-    switch (pqtype_from_sth(imp_sth)) {
-    case PQTYPE_PREPARED:
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sSending prepared %s\n", THEADER_slow, imp_sth->prepare_name);
-
-        pg_call = "PQsendQueryPrepared";
-
-        TRACE_PQSENDQUERYPREPARED;
-        ret = PQsendQueryPrepared(imp_dbh->conn,
-                                  imp_sth->prepare_name, imp_sth->numphs,
-                                  imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
-                                  0);
-        break;
-
-    case PQTYPE_PARAMS:
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sSending %s\n", THEADER_slow, imp_sth->statement);
-
-        pg_call = "PQsendQueryParams";
-
-        TRACE_PQSENDQUERYPARAMS;
-        ret = PQsendQueryParams(imp_dbh->conn,
-                                imp_sth->statement, imp_sth->numphs, imp_sth->PQoids,
-                                imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
-                                0);
-        break;
-
-    case PQTYPE_EXEC:
-        if (TRACE5_slow)
-            TRC(DBILOGFP, "%sSending %s\n", THEADER_slow, imp_sth->statement);
-
-        pg_call = "PQsendQuery";
-
-        TRACE_PQSENDQUERY;
-        ret = PQsendQuery(imp_dbh->conn, imp_sth->statement);
-    }
-
-    return ret ? NULL : pg_call;
 }
 
 static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *our_call)
@@ -357,6 +304,65 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
     return AA_OK;
 }
 
+/***  async action handler routines */
+static int pqtype_from_sth(imp_sth_t *imp_sth)
+{
+    if (imp_sth->prepare_name) return PQTYPE_PREPARED;
+    if (imp_sth->numphs) return PQTYPE_PARAMS;
+    return PQTYPE_EXEC;
+}
+
+static char *send_async_query(imp_dbh_t *imp_dbh, void *p)
+{
+    dTHX;
+    char *pg_call;
+    imp_sth_t *imp_sth;
+    int ret;
+
+    imp_sth = p;
+    imp_sth->async_status = STH_ASYNC;
+
+    switch (pqtype_from_sth(imp_sth)) {
+    case PQTYPE_PREPARED:
+        if (TRACE5_slow)
+            TRC(DBILOGFP, "%sSending prepared %s\n", THEADER_slow, imp_sth->prepare_name);
+
+        pg_call = "PQsendQueryPrepared";
+
+        TRACE_PQSENDQUERYPREPARED;
+        ret = PQsendQueryPrepared(imp_dbh->conn,
+                                  imp_sth->prepare_name, imp_sth->numphs,
+                                  imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
+                                  0);
+        break;
+
+    case PQTYPE_PARAMS:
+        if (TRACE5_slow)
+            TRC(DBILOGFP, "%sSending %s\n", THEADER_slow, imp_sth->statement);
+
+        pg_call = "PQsendQueryParams";
+
+        TRACE_PQSENDQUERYPARAMS;
+        ret = PQsendQueryParams(imp_dbh->conn,
+                                imp_sth->statement, imp_sth->numphs, imp_sth->PQoids,
+                                imp_sth->PQvals, imp_sth->PQlens, imp_sth->PQfmts,
+                                0);
+        break;
+
+    case PQTYPE_EXEC:
+        if (TRACE5_slow)
+            TRC(DBILOGFP, "%sSending %s\n", THEADER_slow, imp_sth->statement);
+
+        pg_call = "PQsendQuery";
+
+        TRACE_PQSENDQUERY;
+        ret = PQsendQuery(imp_dbh->conn, imp_sth->statement);
+    }
+
+    return ret ? NULL : pg_call;
+}
+
+
 static char *aa_send_query(imp_dbh_t *imp_dbh, void *qry)
 {
     dTHX;
@@ -397,6 +403,7 @@ static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_d
     return 0;
 }
 
+/***  async deallocate */
 #if PGLIBVERSION >= 170000
 static char *send_close_prepared(imp_dbh_t *imp_dbh, void *arg)
 {
@@ -487,6 +494,7 @@ static void do_pending_deallocs(imp_dbh_t *imp_dbh)
     imp_dbh->deallocs = d0;
 }
 
+/**  database driver proper plus some extensions */
 /* ================================================================== */
 static int want_async_connect(pTHX_ SV *attrs)
 {
