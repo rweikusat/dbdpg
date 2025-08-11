@@ -174,6 +174,7 @@ use 5.008001;
             DBD::PgAsync::db->install_method('pg_server_trace');
             DBD::PgAsync::db->install_method('pg_server_untrace');
             DBD::PgAsync::db->install_method('pg_type_info');
+            DBD::PgAsync::db->install_method('pg_deallocs_queued');
 
             DBD::PgAsync::st->install_method('pg_cancel');
             DBD::PgAsync::st->install_method('pg_result');
