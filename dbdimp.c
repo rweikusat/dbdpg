@@ -2226,6 +2226,7 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
         croak ("Cannot prepare empty statement");
 
     /* Set default values for this statement handle */
+    imp_sth->async_flag        = 0;
     imp_sth->placeholder_type  = PLACEHOLDER_NONE;
     imp_sth->numsegs           = 0;
     imp_sth->numphs            = 0;
@@ -2256,7 +2257,6 @@ int dbd_st_prepare_sv (SV * sth, imp_sth_t * imp_sth, SV * statement_sv, SV * at
     imp_sth->number_iterations = 0;
 
     /* We inherit some preferences from the database handle */
-    imp_sth->async_flag       = imp_dbh->use_async;
     imp_sth->server_prepare   = imp_dbh->server_prepare;
     imp_sth->switch_prepared  = imp_dbh->switch_prepared;
     imp_sth->prepare_now      = imp_dbh->prepare_now;
@@ -3014,7 +3014,7 @@ static int pg_st_prepare_statement (pTHX_ SV * sth, imp_sth_t * imp_sth)
         imp_sth->result = NULL;
     }
 
-    if (imp_sth->async_flag & PG_ASYNC) {
+    if (imp_dbh->use_async || imp_sth->async_flag & PG_ASYNC) {
         TRACE_PQSENDPREPARE;
         status = PQsendPrepare(imp_dbh->conn, imp_sth->prepare_name, statement, params,
                                imp_sth->PQoids);
@@ -3820,7 +3820,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     PQExecType    pqtype = PQTYPE_UNKNOWN;
     long          power_of_ten;
     char *        stmt;
-    
+    int use_async;
+
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin dbd_st_execute\n", THEADER_slow);
     
     if (NULL == imp_dbh->conn) {
@@ -3865,10 +3866,12 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         croak("Must wait for async query to finish before issuing more commands");
     }
 
+    use_async = imp_dbh->use_async || imp_sth->async_flag & PG_ASYNC;
+
     /* If not autocommit, start a new transaction */
     want_begin = 0;
     if (!imp_dbh->done_begin && !DBIc_has(imp_dbh, DBIcf_AutoCommit)) {
-        if (imp_sth->async_flag & PG_ASYNC)
+        if (use_async)
             want_begin = 1;
         else {
             status = _result(aTHX_ imp_dbh, "begin");
@@ -3898,7 +3901,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
       deleted implicitly the next time pg_db_result is
       called.
     */
-    if (imp_sth->result && !(imp_sth->async_flag & PG_ASYNC)) {
+    if (imp_sth->result && !use_async) {
         TRACE_PQCLEAR;
         PQclear(imp_sth->result);
         imp_sth->result = NULL;
@@ -4053,7 +4056,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         if (TSQL)
             TRC(DBILOGFP, "%s;\n\n", stmt);
 
-        if (!(imp_sth->async_flag & PG_ASYNC)) {
+        if (!use_async) {
             /* Free the last_result as needed, even if happens to be owned by us */
             if (imp_dbh->last_result && imp_dbh->result_clearable) {
                 TRACE_PQCLEAR;
@@ -4137,7 +4140,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
 
         if (TRACE5_slow) TRC(DBILOGFP, "%sRunning %s\n", THEADER_slow, stmt);
 
-        if (!(imp_sth->async_flag & PG_ASYNC)) {
+        if (!use_async) {
             /* Free the last_result as needed, even if happens to be owned by us */
             if (imp_dbh->last_result && imp_dbh->result_clearable) {
                 TRACE_PQCLEAR;
@@ -4206,7 +4209,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
                 TRC(DBILOGFP, ");\n\n");
             }
 
-            if (!(imp_sth->async_flag & PG_ASYNC)) {
+            if (!use_async) {
                 /* Free the last_result as needed, even if happens to be owned by us */
                 if (imp_dbh->last_result && imp_dbh->result_clearable) {
                     TRACE_PQCLEAR;
@@ -4237,7 +4240,7 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
     } /* end new-style prepare */
 
     /* If running asynchronously, we don't stick around for the result */
-    if (imp_sth->async_flag & PG_ASYNC) {
+    if (use_async) {
         if (want_begin) {
             add_async_action(aa_send_query, "begin", after_begin, NULL, 0,
                              imp_dbh);
