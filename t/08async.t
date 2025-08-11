@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 89;
+plan tests => 93;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -587,6 +587,57 @@ is ($res, 2, $t);
     $$dbh{ReadOnly} = 0;
     $$dbh{AutoCommit} = 1;
 }
+
+{
+    #
+    # test async execute of non-async statements when pg_use_async is true
+    #
+
+    my $sth = $dbh->prepare('select 123');
+
+    DBI->trace(15);
+
+    $$dbh{pg_use_async} = 1;
+    $sth->execute();
+    is($$sth{pg_async_status}, 1, 'sth async status is 1 after execute when use_async was set');
+    is($$dbh{pg_async_status}, 1, 'dbh async status is 1 after execute when use_async was set');
+
+    eval {
+        $dbh->pg_ready();
+    };
+    is ($@, q{}, 'Database method pg_ready works after execute when use_async was set');
+
+    eval {
+        $dbh->pg_result();
+    };
+    is ($@, q{}, 'Database method pg_result works after execute when use_async was set');
+
+    $$dbh{pg_use_async} = 0;
+    DBI->trace(0);
+}
+
+# {
+#     DBI->trace(15);
+
+#     $t=q{test async deallocate};
+#     my $sth1 = $dbh->prepare('select name from pg_prepared_statements', { pg_prepare_now => 1 });
+#     my $sth2 = $dbh->prepare('select statement from pg_prepared_statements', { pg_prepare_now => 1 });
+#     my $sth3 = $dbh->prepare('select count(*) from pg_prepared_statements', { pg_prepare_now => 1 });
+#     my ($cnt0, $cnt1);
+
+#     $sth3->execute();
+#     $cnt0 = $sth3->fetchrow_arrayref()->[0];
+
+#     $$dbh{pg_use_async} = 1;
+#     $sth1 = $sth2 = undef;
+#     $sth3->execute();
+#     $dbh->pg_ready();
+#     $cnt1 = $sth3->fetchrow_arrayref()->[0];
+#     is($cnt1, $cnt0 - 2, $t);
+
+#     DBI->trace(0);
+#     $$dbh{pg_use_async} = 0;
+# }
 
 $dbh->do('DROP TABLE dbd_pg_test5');
 
