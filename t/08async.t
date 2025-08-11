@@ -18,7 +18,7 @@ if (! $dbh) {
     plan skip_all => 'Connection to database failed, cannot continue testing';
 }
 
-plan tests => 93;
+plan tests => 94;
 
 isnt ($dbh, undef, 'Connect to database for async testing');
 
@@ -613,28 +613,26 @@ is ($res, 2, $t);
     $$dbh{pg_use_async} = 0;
 }
 
-# {
-#     DBI->trace(15);
+{
+    $t=q{test async deallocate};
+    my $sth1 = $dbh->prepare('select name from pg_prepared_statements', { pg_prepare_now => 1 });
+    my $sth2 = $dbh->prepare('select statement from pg_prepared_statements', { pg_prepare_now => 1 });
+    my $sth3 = $dbh->prepare('select count(*) from pg_prepared_statements', { pg_prepare_now => 1 });
+    my ($cnt0, $cnt1);
 
-#     $t=q{test async deallocate};
-#     my $sth1 = $dbh->prepare('select name from pg_prepared_statements', { pg_prepare_now => 1 });
-#     my $sth2 = $dbh->prepare('select statement from pg_prepared_statements', { pg_prepare_now => 1 });
-#     my $sth3 = $dbh->prepare('select count(*) from pg_prepared_statements', { pg_prepare_now => 1 });
-#     my ($cnt0, $cnt1);
+    $sth3->execute();
+    $cnt0 = $sth3->fetchrow_arrayref()->[0];
 
-#     $sth3->execute();
-#     $cnt0 = $sth3->fetchrow_arrayref()->[0];
+    $$dbh{pg_use_async} = 1;
 
-#     $$dbh{pg_use_async} = 1;
-#     $sth1 = $sth2 = undef;
-#     $sth3->execute();
-#     $dbh->pg_ready();
-#     $cnt1 = $sth3->fetchrow_arrayref()->[0];
-#     is($cnt1, $cnt0 - 2, $t);
+    $sth1 = $sth2 = undef;
+    $sth3->execute();
+    $dbh->pg_result();
+    $cnt1 = $sth3->fetchrow_arrayref()->[0];
+    is($cnt1, $cnt0 - 2, $t);
 
-#     DBI->trace(0);
-#     $$dbh{pg_use_async} = 0;
-# }
+    $$dbh{pg_use_async} = 0;
+}
 
 $dbh->do('DROP TABLE dbd_pg_test5');
 
