@@ -215,7 +215,7 @@ static void async_action_cleanup(imp_dbh_t *imp_dbh)
 
     imp_sth = imp_dbh->async_sth;
     if (imp_sth)
-        if (8 == imp_sth->async_flag) {
+        if (TEMP_STH == imp_sth->async_flag) {
             Safefree(imp_sth->statement);
             Safefree(imp_sth);
         } else
