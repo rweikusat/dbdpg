@@ -179,14 +179,19 @@ static void add_async_action(async_doit *doit, void *doit_arg,
     Newx(aa, 1, async_action_t);
     aa->p = NULL;
 
-    aa->action.doit = doit;
-    aa->action.arg = doit_arg;
+    if (!imp_dbh->aa_first && doit) {
+        doit(imp_dbh, doit_arg);
+
+        aa->action.doit = NULL;
+        aa->action.arg = NULL;
+    } else {
+        aa->action.doit = doit;
+        aa->action.arg = doit_arg;
+    }
+
     aa->result.handle = handle_result;
     aa->result.arg = result_handler_arg;
     aa->flags = flags;
-
-    if (!imp_dbh->aa_first && doit)
-        doit(imp_dbh, doit_arg);
 
     *imp_dbh->aa_pp = aa;
     imp_dbh->aa_pp = &aa->p;
