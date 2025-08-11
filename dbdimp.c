@@ -274,6 +274,7 @@ static long handle_async_action(PGresult *res, SV *h, imp_dbh_t *imp_dbh, char *
             warn_nocontext("aa action marked non-fatal had status %s (%d)",
                            pgres_2_name(status), status);
             aa = NULL;
+            break;
         }
 
         async_action_error(h, imp_dbh, status, our_call, "PQgetResult");
