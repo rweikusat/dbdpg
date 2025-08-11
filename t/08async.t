@@ -630,14 +630,13 @@ is ($res, 2, $t);
     $queued1 = $dbh->pg_deallocs_queued();
     is ($queued1, $queued0 + 2, '# of queued deallocs increased as expected');
 
-
     $sth3->execute();
+    $queued0 = $dbh->pg_deallocs_queued();
+    is ($queued0, $queued1 - 2, '# of queued deallocs decreased as expected');
+
     $dbh->pg_result();
     $prepd1 = $sth3->fetchrow_arrayref()->[0];
     is($prepd1, $prepd0 - 2, '# of prepared statements decreased as expected');
-
-    $queued0 = $dbh->pg_deallocs_queued();
-    is ($queued0, $queued1 - 2, '# of queued deallocs decreased as expected');
 
     $$dbh{pg_use_async} = 0;
 }
