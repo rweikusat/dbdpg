@@ -442,7 +442,6 @@ static void do_dealloc(imp_dbh_t *imp_dbh, char *name)
     res = PQclosePrepared(imp_dbh->conn, name);
 #else
 #define DEALLOC "deallocate "
-
     char *stmt;
     unsigned n_len;
 
