@@ -595,8 +595,6 @@ is ($res, 2, $t);
 
     my $sth = $dbh->prepare('select 123');
 
-    DBI->trace(15);
-
     $$dbh{pg_use_async} = 1;
     $sth->execute();
     is($$sth{pg_async_status}, 1, 'sth async status is 1 after execute when use_async was set');
@@ -613,7 +611,6 @@ is ($res, 2, $t);
     is ($@, q{}, 'Database method pg_result works after execute when use_async was set');
 
     $$dbh{pg_use_async} = 0;
-    DBI->trace(0);
 }
 
 # {
