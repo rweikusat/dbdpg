@@ -1,16 +1,3 @@
-,----
-| remaining-issues
-`----
-
-This has the async support code completely reworked to prepare for
-supporting async deallocate for both PostgreSQL < 17 and PostgreSQL >=
-17. The special-casing of "the async query" and result handler in the
-imp_dbh_t structure is gone. A 'normal' async action structure will
-now also be used for this.
-
-This works for all my test cases but I just completed it today.
-
-
 DBD::PgAsync
 ------------
 
@@ -41,6 +28,12 @@ PQsendPrepare instead of PQprepare for async statements.
 	- commit and rollback can be executed asynchronusly
 
 	- savepoint methods will use asynchronous mode if enabled
+
+	- asychronous ping support
+
+	- no more synchronous deallocation of prepared statements in
+          parameter binding and statement handle destruction paths
+          (see Prepared Statement Deallocation below)
 
 Bug reports etc specifically about this code should probably rather be
 sent to me than to any other DBD::Pg address, especially including the
@@ -75,6 +68,25 @@ The original DBD::Pg method for demanding asynchronous operations,
 including the extension for async connect, is still supported within
 its technical limits. In particular, this means that commit and rollback
 are always sychronous.
+
+
+Prepared Statement Deallocation
+-------------------------------
+
+Up to and includiung version 0.7.2, for a statement handle associated
+with a server-side prepared statement, rebinding a placeholder such
+that the SQL type of the value changed or destroying the statement
+handle would cause a synchronous deallocation of the prepared
+statement. As this possibly requires network communication, any attempt
+to destroy such a statement handle could possibly hang forever if the
+TCP connection to the server had gone bad for sme reason.
+
+Starting with 0.8.0, the name of the prepared statement is instead
+queued for deallocation in future. Both changing the type of a bound
+value and destroying a statement handle will thus always succeed
+immediately. Actual deallocation will take place when a statement (any
+statement) is executed for the next time. If pg_use_async is true when
+this happens, deallocation will be done asychronously.
 
 
 Debian Package
