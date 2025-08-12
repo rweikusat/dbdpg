@@ -753,7 +753,7 @@ SKIP: {
     };
     # restore original signal handler
     POSIX::sigaction(SIGALRM,$oldaction);
-    is ($dbh2->state(), "57014", $t);
+    is ($dbh2->state(), '57014', $t);
     $dbh2->disconnect();
 }
 
