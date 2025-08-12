@@ -527,7 +527,7 @@ is ($res, 2, $t);
     is ($@, q{}, $t);
 
     $t=q{Async ping result is 3 when idle in txn};
-    is($rc, 3, $t);
+    is ($rc, 3, $t);
 
     $$dbh{pg_use_async} = 0;
     $$dbh{AutoCommit} = 1;
@@ -636,7 +636,7 @@ is ($res, 2, $t);
 
     $dbh->pg_result();
     $prepd1 = $sth3->fetchrow_arrayref()->[0];
-    is($prepd1, $prepd0 - 2, '# of prepared statements decreased as expected');
+    is ($prepd1, $prepd0 - 2, '# of prepared statements decreased as expected');
 
     $$dbh{pg_use_async} = 0;
 }
