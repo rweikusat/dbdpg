@@ -512,7 +512,8 @@ static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_d
 
     imp_sth = imp_dbh->async_sth;
     imp_sth->prepared_by_us = DBDPG_TRUE;
-    imp_sth->async_status = STH_ASYNC;
+    if (STH_ASYNC_PREPARE == imp_sth->async_status)
+        imp_sth->async_status = STH_ASYNC;
 
     return 0;
 }
