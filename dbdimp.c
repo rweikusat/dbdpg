@@ -512,7 +512,7 @@ static long after_prepare(PGresult *unused0, int status, SV *h, imp_dbh_t *imp_d
 
     imp_sth = imp_dbh->async_sth;
     imp_sth->prepared_by_us = DBDPG_TRUE;
-    if (STH_ASYNC_PREPARE == imp_sth->async_status)
+    if (STH_ASYNC_PREPARE == imp_sth->async_status) /* a cancel might have changed this */
         imp_sth->async_status = STH_ASYNC;
 
     return 0;
