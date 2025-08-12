@@ -79,7 +79,7 @@ that the SQL type of the value changed or destroying the statement
 handle would cause a synchronous deallocation of the prepared
 statement. As this possibly requires network communication, any attempt
 to destroy such a statement handle could possibly hang forever if the
-TCP connection to the server had gone bad for sme reason.
+TCP connection to the server had gone bad for some reason.
 
 Starting with 0.8.0, the name of the prepared statement is instead
 queued for deallocation in future. Both changing the type of a bound
