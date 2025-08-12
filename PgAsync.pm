@@ -174,6 +174,7 @@ use 5.008001;
             DBD::PgAsync::db->install_method('pg_server_trace');
             DBD::PgAsync::db->install_method('pg_server_untrace');
             DBD::PgAsync::db->install_method('pg_type_info');
+            DBD::PgAsync::db->install_method('pg_deallocs_queued');
 
             DBD::PgAsync::st->install_method('pg_cancel');
             DBD::PgAsync::st->install_method('pg_result');
@@ -2835,6 +2836,11 @@ The value returned indicates the current state:
 Additional information on why a handle is not valid can be obtained by using the
 L</pg_ping> method.
 
+When asynchronous mode is enabled (C<pg_use_async> is 1), a return
+value of 1 means the test query was successfully sent to the
+server. The actual result of the ping will become available as return
+value of C<pg_result> after the test query has finished.
+
 =head3 B<pg_ping>
 
   $rv = $dbh->pg_ping;
@@ -4239,6 +4245,10 @@ running, this method will wait until it has finished. The result returned is the
 that would have been returned by the asynchronous L</do> or L</execute> if it had been called without an asynchronous flag.
 
   $result = $dbh->pg_result;
+
+B<The method will (mis-)handle queries containing more than one SQL
+statement exactly like C<PQexec> does: It'll discard all PGresult
+objects except the last.>
 
 =back
 
