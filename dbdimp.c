@@ -365,6 +365,111 @@ static char *send_async_query(imp_dbh_t *imp_dbh, void *p)
     return ret ? NULL : pg_call;
 }
 
+static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *imp_dbh,
+                                void *p)
+{
+    dTHX;
+    imp_sth_t *imp_sth;
+    char *cmdStatus;
+    int n_fields;
+    long rows;
+
+    imp_dbh->copystate = 0;
+    rows = 0;
+    imp_sth = imp_dbh->async_sth;
+    if (!imp_sth) imp_sth = p;
+
+    if (TRACE5_slow) TRC(DBILOGFP, "%sStatus is %s(%d)\n",
+                         THEADER_slow, pgres_2_name(status), status);
+
+    switch (status) {
+    case PGRES_TUPLES_OK:
+        TRACE_PQNTUPLES;
+        rows = PQntuples(result);
+
+        TRACE_PQNFIELDS;
+        n_fields = PQnfields(result);
+
+        if (TRACE5_slow) TRC(DBILOGFP, "%sfields=%d, tuples=%ld\n",
+                             THEADER_slow, n_fields, rows);
+
+        if (imp_sth) {
+            imp_sth->cur_tuple = 0;
+            DBIc_NUM_FIELDS(imp_sth) = n_fields;
+            DBIc_ACTIVE_on(imp_sth);
+        }
+
+        break;
+
+    case PGRES_COMMAND_OK:
+        /* non-select statement */
+        TRACE_PQCMDSTATUS;
+        cmdStatus = PQcmdStatus(result);
+        if (0 == strncmp(cmdStatus, "INSERT", 6)) {
+            /* INSERT(space)oid(space)numrows */
+            for (rows=8; cmdStatus[rows-1] != ' '; rows++) {
+            }
+            rows = atol(cmdStatus + rows);
+        }
+        else if (0 == strncmp(cmdStatus, "MOVE", 4)) {
+            rows = atol(cmdStatus + 5);
+        }
+        else if (0 == strncmp(cmdStatus, "DELETE", 6)
+                 || 0 == strncmp(cmdStatus, "UPDATE", 6)
+                 || 0 == strncmp(cmdStatus, "SELECT", 6)) {
+            rows = atol(cmdStatus + 7);
+        }
+        else if (0 == strncmp(cmdStatus, "MERGE", 5)) {
+            rows = atol(cmdStatus + 6);
+        }
+
+        if (!rows) {
+            /* No rows affected, but check for change of state */
+            TRACE_PQTRANSACTIONSTATUS;
+            if (PQTRANS_IDLE == PQtransactionStatus(imp_dbh->conn)) {
+                imp_dbh->done_begin = DBDPG_FALSE;
+                /* If begin_work has been called, turn AutoCommit back on and BegunWork off */
+                if (DBIc_has(imp_dbh, DBIcf_BegunWork)!=0) {
+                    DBIc_set(imp_dbh, DBIcf_AutoCommit, 1);
+                    DBIc_set(imp_dbh, DBIcf_BegunWork, 0);
+                }
+            }
+        }
+
+        break;
+
+    case PGRES_COPY_OUT:
+    case PGRES_COPY_IN:
+    case PGRES_COPY_BOTH:
+        /* Copy Out/In data transfer in progress */
+        imp_dbh->copystate = status;
+        imp_dbh->copybinary = PQbinaryTuples(result);
+        rows = -1;
+        break;
+
+    case PGRES_EMPTY_QUERY:
+    case PGRES_BAD_RESPONSE:
+    case PGRES_NONFATAL_ERROR:
+        rows = -2;
+        TRACE_PQERRORMESSAGE;
+        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
+        break;
+
+    case PGRES_FATAL_ERROR:
+        if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
+            async_action_cleanup(imp_dbh);
+            rows = 0;
+            break;
+        }
+
+    default:
+        rows = -2;
+        TRACE_PQERRORMESSAGE;
+        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
+    }
+
+    return rows;
+}
 
 static char *aa_send_query(imp_dbh_t *imp_dbh, void *qry)
 {
@@ -5818,111 +5923,6 @@ int dbd_st_blob_read (SV * sth, imp_sth_t * imp_sth, int lobjId, long offset, lo
 /* 
    Return the result of an asynchronous query, waiting if needed
 */
-static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *imp_dbh,
-                                void *p)
-{
-    dTHX;
-    imp_sth_t *imp_sth;
-    char *cmdStatus;
-    int n_fields;
-    long rows;
-
-    imp_dbh->copystate = 0;
-    rows = 0;
-    imp_sth = imp_dbh->async_sth;
-    if (!imp_sth) imp_sth = p;
-
-    if (TRACE5_slow) TRC(DBILOGFP, "%sStatus is %s(%d)\n",
-                         THEADER_slow, pgres_2_name(status), status);
-
-    switch (status) {
-    case PGRES_TUPLES_OK:
-        TRACE_PQNTUPLES;
-        rows = PQntuples(result);
-
-        TRACE_PQNFIELDS;
-        n_fields = PQnfields(result);
-
-        if (TRACE5_slow) TRC(DBILOGFP, "%sfields=%d, tuples=%ld\n",
-                             THEADER_slow, n_fields, rows);
-
-        if (imp_sth) {
-            imp_sth->cur_tuple = 0;
-            DBIc_NUM_FIELDS(imp_sth) = n_fields;
-            DBIc_ACTIVE_on(imp_sth);
-        }
-
-        break;
-
-    case PGRES_COMMAND_OK:
-        /* non-select statement */
-        TRACE_PQCMDSTATUS;
-        cmdStatus = PQcmdStatus(result);
-        if (0 == strncmp(cmdStatus, "INSERT", 6)) {
-            /* INSERT(space)oid(space)numrows */
-            for (rows=8; cmdStatus[rows-1] != ' '; rows++) {
-            }
-            rows = atol(cmdStatus + rows);
-        }
-        else if (0 == strncmp(cmdStatus, "MOVE", 4)) {
-            rows = atol(cmdStatus + 5);
-        }
-        else if (0 == strncmp(cmdStatus, "DELETE", 6)
-                 || 0 == strncmp(cmdStatus, "UPDATE", 6)
-                 || 0 == strncmp(cmdStatus, "SELECT", 6)) {
-            rows = atol(cmdStatus + 7);
-        }
-        else if (0 == strncmp(cmdStatus, "MERGE", 5)) {
-            rows = atol(cmdStatus + 6);
-        }
-
-        if (!rows) {
-            /* No rows affected, but check for change of state */
-            TRACE_PQTRANSACTIONSTATUS;
-            if (PQTRANS_IDLE == PQtransactionStatus(imp_dbh->conn)) {
-                imp_dbh->done_begin = DBDPG_FALSE;
-                /* If begin_work has been called, turn AutoCommit back on and BegunWork off */
-                if (DBIc_has(imp_dbh, DBIcf_BegunWork)!=0) {
-                    DBIc_set(imp_dbh, DBIcf_AutoCommit, 1);
-                    DBIc_set(imp_dbh, DBIcf_BegunWork, 0);
-                }
-            }
-        }
-
-        break;
-
-    case PGRES_COPY_OUT:
-    case PGRES_COPY_IN:
-    case PGRES_COPY_BOTH:
-        /* Copy Out/In data transfer in progress */
-        imp_dbh->copystate = status;
-        imp_dbh->copybinary = PQbinaryTuples(result);
-        rows = -1;
-        break;
-
-    case PGRES_EMPTY_QUERY:
-    case PGRES_BAD_RESPONSE:
-    case PGRES_NONFATAL_ERROR:
-        rows = -2;
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
-        break;
-
-    case PGRES_FATAL_ERROR:
-        if (strcmp(imp_dbh->sqlstate, SQLST_CANCELLED) == 0) {
-            async_action_cleanup(imp_dbh);
-            rows = 0;
-            break;
-        }
-
-    default:
-        rows = -2;
-        TRACE_PQERRORMESSAGE;
-        pg_error(aTHX_ h, status, PQerrorMessage(imp_dbh->conn));
-    }
-
-    return rows;
-}
 
 static PGresult *handle_next_result_set(imp_dbh_t *imp_dbh)
 {
