@@ -6,6 +6,7 @@ Changes for the DBD::PgAsync module
     - asynchronous deallocation of prepared statements
     - make pg_use_async work as intended for statements prepared while
       it was still off but turned on before an execute
+    - never use PQexec for an already prepared statement
 
 --- 07/21/2025 rweikusat@talktalk.net ---
 
