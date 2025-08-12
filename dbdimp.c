@@ -447,6 +447,12 @@ static long handle_query_result(PGresult *result, int status, SV *h, imp_dbh_t *
         rows = -1;
         break;
 
+        /*
+          This is necessary despite the error handling code in
+          handle_async_action because this routine is also used for
+          handling the results of synchronous queries by pg_quickexec
+          and dbd_st_execute.
+        */
     case PGRES_EMPTY_QUERY:
     case PGRES_BAD_RESPONSE:
     case PGRES_NONFATAL_ERROR:
