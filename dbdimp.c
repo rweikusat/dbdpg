@@ -5929,7 +5929,6 @@ int dbd_st_blob_read (SV * sth, imp_sth_t * imp_sth, int lobjId, long offset, lo
 /* 
    Return the result of an asynchronous query, waiting if needed
 */
-
 static PGresult *handle_next_result_set(imp_dbh_t *imp_dbh)
 {
     dTHX;
@@ -5943,10 +5942,10 @@ static PGresult *handle_next_result_set(imp_dbh_t *imp_dbh)
       been dequeued.
 
       For multiple results, the function below is functionally
-      identical to the DBD::Pg implementation, just with less churn
-      (ie, it won't set rows and fields values in control structures
-      which will end up being overwritten if another result needs to
-      be processed).
+      identical to the original DBD::Pg implementation in
+      pg_db_result, just with less churn (ie, it won't set rows and
+      fields values in control structures which will end up being
+      overwritten if another result needs to be processed).
     */
 
     TRACE_PQGETRESULT;
