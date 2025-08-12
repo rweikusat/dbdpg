@@ -386,7 +386,6 @@ ifdefs
 implementor
 InactiveDestroy
 IncludingOptionalDependencies
-inerror
 initdb
 inout
 installarchlib
