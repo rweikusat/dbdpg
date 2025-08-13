@@ -4182,6 +4182,8 @@ transaction
 
 =item * the methods for manageing savepoints
 
+=item * automatically triggered deallocation of prepared statements
+
 =back
 
 =head3 Asynchronous Connect
@@ -4242,6 +4244,19 @@ An asychnronous C<prepare> may immediately be followed by an
 asynchronous C<execute> using the same statement handle. The return
 value of C<pg_db_ready> will then indicate that the query has finished
 once both the C<prepare> and the C<execcute> completed.
+
+=head3 Deallocation of Prepared Statements
+
+In asychronous mode, asynchronous requests will be used to deallocate
+prepared statements once they're no longer needed. These will
+piggyback on ordinary statement executions via C<do> or
+C<execute>. There's usually no need to worry about this but
+it will become visible when I<DBI> tracing is enabled.
+
+=head3 Code Examples
+
+Some examples for using asychronous mode can be found in the various
+test scripts in the I<async-test> subdirectory.
 
 =head2 Array support
 
