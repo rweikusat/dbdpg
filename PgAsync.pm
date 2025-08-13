@@ -4211,10 +4211,10 @@ The method returns on of the following values
 
 =back
 
-=head3 Waiting For Query Results
+=head3 Waiting for Query Results
 
 The C<pg_result> method waits for the result of an asychronous query
-and makes it available in the ordinary afterwards. On its own, the
+and makes it available in the ordinary way afterwards. On its own, the
 method just blocks until the result was received. The C<pg_ready>
 method can be used to avoid this. When called, it'll read whatever
 data is available from the connection to the server and return either
@@ -4235,6 +4235,13 @@ The C<pg_socket> database handle attribute can be used to determine
 the number of a file descriptor which can be used together with C<select>
 (or equivalent) to determine when C<pg_ready> should be called for the next
 time.
+
+=head3 Prepare and Execute
+
+An asychnronous C<prepare> may immediately be followed by an
+asynchronous C<execute> using the same statement handle. The return
+value of C<pg_db_ready> will then indicate that the query has finished
+once both the C<prepare> and the C<execcute> completed.
 
 =head2 Array support
 
