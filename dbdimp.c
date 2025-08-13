@@ -6069,8 +6069,8 @@ static inline int pg_db_ready_core(SV *h, imp_dbh_t *imp_dbh)
 {
     dTHX;
     PGresult *res;
-    int rc;
 
+    rc = 0;
     TRACE_PQISBUSY;
     if (PQisBusy(imp_dbh->conn)) return 0;
     if (!imp_dbh->aa_first->p) return 1;
@@ -6102,16 +6102,9 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
     if (TSTART_slow) TRC(DBILOGFP, "%sBegin pg_db_ready (async status: %d)\n",
                          THEADER_slow, imp_dbh->async_status);
 
-    switch (imp_dbh->async_status) {
-    case DBH_NO_ASYNC:
+    if (DBH_ASYNC != imp_dbh->async_status) {
         pg_error(aTHX_ h, PGRES_FATAL_ERROR, "No asynchronous query is running\n");
         if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: no async)\n", THEADER_slow);
-        return -1;
-
-    case DBH_ASYNC_CONNECT:
-    case DBH_ASYNC_CONNECT_POLL:
-        if (TRACE5_slow) TRC(DBILOGFP, "%snot yet connected\n", THEADER_slow);
-        if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (error: not connected)\n", THEADER_slow);
         return -1;
     }
 
@@ -6124,7 +6117,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         return -2;
     }
 
-    rc = pg_db_ready_core(h, imp_dbh);
+    rc = pg_db_ready_core(h,imp_dbh);
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (status %d)\n",
                        THEADER_slow, rc);
     return rc;
