@@ -6069,8 +6069,8 @@ static inline int pg_db_ready_core(SV *h, imp_dbh_t *imp_dbh)
 {
     dTHX;
     PGresult *res;
+    int rc;
 
-    rc = 0;
     TRACE_PQISBUSY;
     if (PQisBusy(imp_dbh->conn)) return 0;
     if (!imp_dbh->aa_first->p) return 1;
