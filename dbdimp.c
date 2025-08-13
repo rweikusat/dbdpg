@@ -6065,11 +6065,12 @@ long pg_db_result (SV *h, imp_dbh_t *imp_dbh)
    0 if the query is still running
    -2 for other errors
 */
-static inline int pg_db_ready_core(imp_dbh_t *imp_dbh)
+static inline int pg_db_ready_core(SV *h, imp_dbh_t *imp_dbh)
 {
+    dTHX;
     PGresult *res;
+    int rc;
 
-    rc = 0;
     TRACE_PQISBUSY;
     if (PQisBusy(imp_dbh->conn)) return 0;
     if (!imp_dbh->aa_first->p) return 1;
@@ -6123,7 +6124,7 @@ int pg_db_ready(SV *h, imp_dbh_t *imp_dbh)
         return -2;
     }
 
-    rc = pg_db_ready_core(imp_dbh);
+    rc = pg_db_ready_core(h, imp_dbh);
     if (TEND_slow) TRC(DBILOGFP, "%sEnd pg_db_ready (status %d)\n",
                        THEADER_slow, rc);
     return rc;
