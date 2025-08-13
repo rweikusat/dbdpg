@@ -3973,6 +3973,8 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         imp_sth->all_bound = DBDPG_TRUE;
     }
 
+    use_async = imp_dbh->use_async || imp_sth->async_flag & PG_ASYNC;
+
     switch (imp_dbh->async_status) {
     case DBH_NO_ASYNC:
         break;
@@ -3982,13 +3984,11 @@ long dbd_st_execute (SV * sth, imp_sth_t * imp_sth)
         croak("Must wait for async connect to finish before issuing commands");
 
     default:
-        if (imp_sth == imp_dbh->async_sth && STH_ASYNC_PREPARE == imp_sth->async_status)
+        if (use_async && imp_sth == imp_dbh->async_sth && STH_ASYNC_PREPARE == imp_sth->async_status)
             break;
 
         croak("Must wait for async query to finish before issuing more commands");
     }
-
-    use_async = imp_dbh->use_async || imp_sth->async_flag & PG_ASYNC;
 
     /* If not autocommit, start a new transaction */
     want_begin = 0;
