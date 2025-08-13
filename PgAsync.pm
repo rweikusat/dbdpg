@@ -4192,24 +4192,38 @@ or failure has been established. The C<pg_socket> database handle
 attribute can be used to determine the number of a file descriptor
 which can be used together with C<select> (or equivalent> to determine
 when to call C<pg_continue_connect> for the next time. The actual file
-descriptor number returned by C<pg_socket}> may have changed after
+descriptor number returned by C<pg_socket> may have changed after
 each call to C<pg_continue_connect>.
 
+The method returns on of the following values
+
+=over
+
+=item * -2 if establishing the connection failed
+
+=item * -1 if no asynchronous connect is in progress
+
+=item * 0 to indicate that the connection was established
+
+=item * 1 to indicates that it's waiting for data to read
+
+=item * 2 to indicate that it wants to write data
+
+=back
 
 =head3 Waiting For Query Results
 
 The C<pg_result> method waits for the result of an asychronous query
-and makes it available in the ordinary way once it became
-available. On its own, the method just blocks until the result was
-received. The C<pg_ready> method can be used to avoid this. When
-called, it'll read whatever data is available from the connection to
-the server and return either
+and makes it available in the ordinary afterwards. On its own, the
+method just blocks until the result was received. The C<pg_ready>
+method can be used to avoid this. When called, it'll read whatever
+data is available from the connection to the server and return either
 
 =over
 
-=item * -1 if no query is running
+=item * -2 if some error occurred
 
-=item * -2 for any other error
+=item * -1 if no query was running
 
 =item * 0 if the query hasn't finished yet
 
