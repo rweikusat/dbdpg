@@ -4216,7 +4216,23 @@ The method returns on of the following values
 =head3 Waiting for Query Results
 
 The C<pg_result> method waits for the result of an asychronous query
-and makes it available in the ordinary way afterwards. On its own, the
+and makes it available in the ordinary way afterwards. It returns
+either
+
+=over
+
+=item * -2 to signal that an error occurred
+
+=item * 0 when a statment either didn't affect any rows or got
+cancelled
+
+=item * the number of rows in the result for statments returning rows
+
+=item * the number of rows affected by a DML statement
+
+=back
+
+On its own, the
 method just blocks until the result was received. The C<pg_ready>
 method can be used to avoid this. When called, it'll read whatever
 data is available from the connection to the server and return either
