@@ -4192,7 +4192,7 @@ When connecting asynchronously, the C<pg_continue_connect> method must
 be used to continue the connection establishment process until success
 or failure has been established. The C<pg_socket> database handle
 attribute can be used to determine the number of a file descriptor
-which can be used together with C<select> (or equivalent> to determine
+which can be used together with C<select> (or equivalent) to determine
 when to call C<pg_continue_connect> for the next time. The actual file
 descriptor number returned by C<pg_socket> may have changed after
 each call to C<pg_continue_connect>.
@@ -4243,7 +4243,17 @@ time.
 An asychnronous C<prepare> may immediately be followed by an
 asynchronous C<execute> using the same statement handle. The return
 value of C<pg_db_ready> will then indicate that the query has finished
-once both the C<prepare> and the C<execcute> completed.
+once both the C<prepare> and the C<execute> completed.
+
+=head3 Cancelling Queries
+
+The C<pg_cancel> method makes an attempt to cancel a running
+asynchronous query. After calling it, the code should wait for a
+result in the way described above under I<Waiting for Query
+Results>. This may either yield an ordinary query result if the query
+had already finished by the time the cancel request was received or
+cause C<pg_result> to return 0 and set the database handle
+SQLSTATE to 57014.
 
 =head3 Deallocation of Prepared Statements
 
