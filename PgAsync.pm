@@ -4190,14 +4190,8 @@ transaction
 
 When connecting asynchronously, the C<pg_continue_connect> method must
 be used to continue the connection establishment process until success
-or failure has been established. The C<pg_socket> database handle
-attribute can be used to determine the number of a file descriptor
-which can be used together with C<select> (or equivalent) to determine
-when to call C<pg_continue_connect> for the next time. The actual file
-descriptor number returned by C<pg_socket> may have changed after
-each call to C<pg_continue_connect>.
-
-The method returns on of the following values
+or failure has been established. The method returns one of the
+following values
 
 =over
 
@@ -4212,6 +4206,13 @@ The method returns on of the following values
 =item * 2 to indicate that it wants to write data
 
 =back
+
+The C<pg_socket> database handle
+attribute can be used to determine the number of a file descriptor
+which can be used together with C<select> (or equivalent) to determine
+when to call C<pg_continue_connect> for the next time. The actual file
+descriptor number returned by C<pg_socket> may have changed after
+each call to C<pg_continue_connect>.
 
 =head3 Waiting for Query Results
 
