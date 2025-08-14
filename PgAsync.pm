@@ -1711,12 +1711,9 @@ This documents version 0.5 of the DBD::PgAsync module
 =head1 DESCRIPTION
 
 DBD::PgAsync is a fork of the DBD::Pg PostgreSQL database driver
-module intended to have complete support for the libpq asynchronous
-interface. In particular, this means support for asynchronous connect
-and asynchronous prepare and without hidden synchronous operations as
-in the DBD::Pg pg_cancel method or the SQL statements transparently
-issued to start/ initialize a new transaction when AutoCommit is
-disabled.
+module intended to have more complete support for the libpq
+asynchronous interface. Details are documented in the I<Asynchronous
+Mode> section below.
 
 =head1 MODULE DOCUMENTATION
 
