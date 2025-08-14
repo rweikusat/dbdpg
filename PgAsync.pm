@@ -4223,8 +4223,8 @@ either
 
 =item * -2 to signal that an error occurred
 
-=item * 0 when a statment either didn't affect any rows or got
-cancelled
+=item * 0 for a statements which neither affected nor returned any
+rows or got cancelled
 
 =item * the number of rows in the result for statments returning rows
 
