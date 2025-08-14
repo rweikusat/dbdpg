@@ -4160,12 +4160,12 @@ created after the one being released are also destroyed.
 =head2 Asynchronous Mode
 
 The database handle attribute C<pg_use_async> which may either be
-passed to connect or enabled (or disabled) at a later time enables
-I<asynchronous mode>. Operations which require communication with the
-database server will then no longer block until a reply was received
-but return immediately after sending the request.
-
-This affects the following operations:
+passed as attribute to C<connect> or enabled (or disabled) at a later
+time can be used to switch a database handle to I<asynchronous
+mode>. Operations which require communication with the database server
+will then no longer block until a reply was received but return
+immediately after sending the request. This affects the following
+operations:
 
 =over
 
