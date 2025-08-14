@@ -4227,7 +4227,7 @@ either
 =item * 0 for a statements which neither affected nor returned any
 rows or got cancelled
 
-=item * the number of rows in the result for statments returning rows
+=item * the number of rows in the result for statements returning rows
 
 =item * the number of rows affected by a DML statement
 
