@@ -32,7 +32,8 @@ deallocation.
 
 Bug reports etc specifically about this code should probably rather be
 sent to me than to any other DBD::Pg address, especially including the
-principal author of most of the code (<greg@turnstep.com>).
+principal author of most of the code (<greg@turnstep.com>). As a
+development project, I consider this completed.
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
 
