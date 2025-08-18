@@ -1,92 +1,33 @@
 DBD::PgAsync
 ------------
 
-This is a fork of DBD::Pg (3.18.0) intended to fully support
-asynchronous database operations. In addition to the existing DBD::Pg
-async support, this needs
+This is a fork of DBD::Pg (3.18.0) with more complete support for the
+libq asynchronous interface. It supports an asynchronus mode for
+database handles which can be enabled by setting the attribute
+pg_use_async to true, either by passing it as attribute to connect or
+setting it at a later time. When in asynchronous mode, the following
+operations will use asynchronous interfaces by default:
 
-	1. Support for async connect via PQconnectStart/ PQconnectPoll.
-        2. Support for async prepare PQsendPrepare.
-        3. Removal of synchronous database operations embedded in
-           dbdimp.c functions, eg, in pg_db_cancel.
+	- connecting to a database server
+        - preparing statements
+        - executing statements via ->do or ->execute
+        - transactions which are implicitly started when AutoCommit is
+          off
+	- the commit and rollback methods for ending a transaction
+        - the ping and pg_ping methods
+        - the savepoint methods
+        - automatic deallocation of prepared statements
 
-1) is implemented using a special attribute to connect and a method
-named pg_continue_connect which functions as interface to
-PQconnectPoll. See manpage for more details.
-
-2) is implemented as well. The code should transparently use
-PQsendPrepare instead of PQprepare for async statements.
-
-3) completed so far:
-
-	- pg_cancel no longer waits for the result of the cancelled
-          query.
-
-	- transactions started automatically when autocommit is off
-          use asychronous command execution          
-
-	- commit and rollback can be executed asynchronusly
-
-	- savepoint methods will use asynchronous mode if enabled
-
-	- asychronous ping support
-
-	- no more synchronous deallocation of prepared statements in
-          parameter binding and statement handle destruction paths
-          (see Prepared Statement Deallocation below)
+In contrast to this, DBD::Pg supports asynchronous mode only for do
+and execute and will even then use 'hidden' synchronous queries for
+transaction creation and initialization and prepared statement
+deallocation.
 
 Bug reports etc specifically about this code should probably rather be
 sent to me than to any other DBD::Pg address, especially including the
 principal author of most of the code (<greg@turnstep.com>).
 
 	-- Rainer Weikusat <rweikusat@talktalk.net>
-
-
-New Method to Enable Async Operations
--------------------------------------
-
-Starting with version 0.6, the recommended method to enable
-asychronous operation is to pass pg_use_async to the DBI connect
-method, example:
-
-    $dbh = DBI->connect($cs, '', '',
-                               {
-                                AutoCommit => 1,
-                                RaiseError => 1,
-                                pg_server_prepare => 1,
-                                pg_use_async => 1});
-
-This will use asynchronous operations by default whereever support
-for them has been implemented. It's possible to disable this for
-individual statement handles by passing a pg_async attribute with
-value 0 to prepare. Async-by-default can also be disabled at any time
-by setting pg_use_async to 0, eg,
-
-    $$dbh{pg_use_async} = 0;
-
-The original DBD::Pg method for demanding asynchronous operations,
-including the extension for async connect, is still supported within
-its technical limits. In particular, this means that commit and rollback
-are always sychronous.
-
-
-Prepared Statement Deallocation
--------------------------------
-
-Up to and includiung version 0.7.2, for a statement handle associated
-with a server-side prepared statement, rebinding a placeholder such
-that the SQL type of the value changed or destroying the statement
-handle would cause a synchronous deallocation of the prepared
-statement. As this possibly requires network communication, any attempt
-to destroy such a statement handle could possibly hang forever if the
-TCP connection to the server had gone bad for some reason.
-
-Starting with 0.8.0, the name of the prepared statement is instead
-queued for deallocation in future. Both changing the type of a bound
-value and destroying a statement handle will thus always succeed
-immediately. Actual deallocation will take place when a statement (any
-statement) is executed for the next time. If pg_use_async is true when
-this happens, deallocation will be done asychronously.
 
 
 Debian Package
