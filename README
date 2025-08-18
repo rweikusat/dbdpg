@@ -9,14 +9,21 @@ setting it at a later time. When in asynchronous mode, the following
 operations will use asynchronous interfaces by default:
 
 	- connecting to a database server
-        - preparing statements
-        - executing statements via ->do or ->execute
-        - transactions which are implicitly started when AutoCommit is
-          off
+
+	- preparing statements
+
+	- executing statements via ->do or ->execute
+
+	- transaction creation and initialization when AutoCommit is
+          off 
+
 	- the commit and rollback methods for ending a transaction
-        - the ping and pg_ping methods
-        - the savepoint methods
-        - automatic deallocation of prepared statements
+
+	- the ping and pg_ping methods
+
+	- the savepoint methods
+
+	- automatic deallocation of prepared statements
 
 In contrast to this, DBD::Pg supports asynchronous mode only for do
 and execute and will even then use 'hidden' synchronous queries for
