@@ -6,7 +6,7 @@ libdbd-pg-async-perl (0.8) unstable; urgency=medium
     pg_use_async off and executed with pg_use_async on
   * never use PQexec for an already prepared statement
 
- -- Rainer Weikusat <rweikusat@talktalk.net>  Tue, 12 Aug 2025 18:40:27 +0100
+ -- Rainer Weikusat <rweikusat@talktalk.net>  Mon, 18 Aug 2025 16:54:18 +0100
 
 libdbd-pg-async-perl (0.7.2) unstable; urgency=medium
 
