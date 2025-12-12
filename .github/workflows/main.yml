@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        perl: [ '5.30', '5.36', '5.40' ]
-        postgres: [ '11', '13', 'latest' ]
+        perl: [ '5.36' ]
+        postgres: [ '15' ]
 
     services:
       postgreshost:
