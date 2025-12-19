@@ -1,8 +1,8 @@
 name: CI in Docker container
 
 on:
-  push:
-  pull_request:
+#  push:
+#  pull_request:
   workflow_dispatch:
   paths-ignore:
     - 'testme.tmp.pl'
