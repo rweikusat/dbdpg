@@ -1,4 +1,4 @@
-name: CI in Docker container
+name: AI will make AI obsolete tomorrow
 
 on:
   workflow_dispatch:
