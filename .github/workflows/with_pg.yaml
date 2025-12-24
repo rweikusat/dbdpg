@@ -43,6 +43,7 @@ jobs:
     - name: Install Modules
       run: |
         cpanm -v
+        cpanm ExtUtils::MakeMaker
         cpanm -v --installdeps --notest .
         cpanm -v --notest Perl::Critic Text::SpellChecker
 
