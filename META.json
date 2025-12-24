@@ -57,7 +57,7 @@
       "version" : "0",
       "Time::HiRes" : "0",
       "DBI" : "1.614",
-      "Test::More" : "0.88",
+      "Test::More" : "0.88"
    },
    "abstract" : "DBI PostgreSQL interface"
 }
