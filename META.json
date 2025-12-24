@@ -58,7 +58,6 @@
       "Time::HiRes" : "0",
       "DBI" : "1.614",
       "Test::More" : "0.88",
-      "ExtUtils::MakeMaker" : "7.64"
    },
    "abstract" : "DBI PostgreSQL interface"
 }
