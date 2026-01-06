@@ -122,8 +122,12 @@ static char *pgres_names[] = {
     n_(PGRES_EMPTY_QUERY),
     n_(PGRES_FATAL_ERROR),
     n_(PGRES_NONFATAL_ERROR),
+#ifdef PGRES_PIPELINE_ABORTED
     n_(PGRES_PIPELINE_ABORTED),
+#endif
+#ifdef PGRES_PIPELINE_SYNC
     n_(PGRES_PIPELINE_SYNC),
+#endif
     n_(PGRES_SINGLE_TUPLE),
     n_(PGRES_TUPLES_OK)
 
