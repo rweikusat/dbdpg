@@ -28,7 +28,8 @@
       },
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : "0"
+             "ExtUtils::MakeMaker" : "0",
+             "DBI" : "1.614"
          }
       },
       "runtime" : {
