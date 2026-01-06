@@ -11,7 +11,7 @@ pushed to GitHub to have an external backup.
 
 
 
-DBD::Pg is Copyright (C) 1994-2025, Greg Sabino Mullane
+DBD::Pg is Copyright (C) 1994-2026, Greg Sabino Mullane
 
 DBD::Pg  --  the DBI PostgreSQL interface for Perl
 
