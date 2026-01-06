@@ -51,8 +51,8 @@ jobs:
     - name: Install Modules
       run: |
         cpanm -v
-        cpanm --installdeps --notest .
-        cpanm --notest Perl::Critic Text::SpellChecker
+        cpanm -v --installdeps --notest .
+        cpanm -v --notest Perl::Critic Text::SpellChecker
 
     - name: Show Errors on Ubuntu
       if:  ${{ failure() && startsWith( matrix.runner, 'ubuntu-')}}
