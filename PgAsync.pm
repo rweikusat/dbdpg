@@ -140,7 +140,7 @@ use 5.008001;
         $class .= '::dr';
 
         ## Work around for issue found in https://rt.cpan.org/Ticket/Display.html?id=83057
-        my $realversion = qv('3.18.0');
+        my $realversion = qv('0.8.1');
 
         $drh = DBI::_new_drh($class, {
             'Name'        => 'PgAsync',
@@ -2818,10 +2818,9 @@ server version 9.0 or higher.
   $rv = $dbh->ping;
 
 The C<ping> method determines if there is a working connection to an active
-database server. It does this by sending a small query to the server, currently
-B<'DBD::PgAsync ping test v3.18.0'>. It returns 0 (false) if the connection is not valid,
-otherwise it returns a positive number (true). It should never throw an exception.
-The value returned indicates the current state:
+database server. It does this by sending a small query to the server. It returns
+0 (false) if the connection is not valid, otherwise it returns a positive number (true).
+It should never throw an exception. The value returned indicates the current state:
 
   Value    Meaning
   --------------------------------------------------
