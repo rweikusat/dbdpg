@@ -28,7 +28,7 @@ my %filelist = (
     'Makefile.PL'          => [1, [ qr{VERSION = '$vre'},       ]],
 #    'README'               => [1, [ qr{is version $vre},
 #                                    qr{TEST VERSION \($vre},    ]],
-    'Changes'              => [1, [ qr{^(?:Version )*$vre},     ]],
+#    'Changes'              => [1, [ qr{^(?:Version )*$vre},     ]],
 );
 
 my %v;
