@@ -20,6 +20,16 @@
          "inc"
       ]
    },
+    "provides" : {
+        "DBD::PgAsync" : {
+            "file" : "PgAsync.pm",
+            "version" : "0.8.1"
+        },
+        "Bundle::DBD::PgAsync" : {
+            "version" : "0.8.1",
+            "file" : "lib/Bundle/DBD/PgAsync.pm"
+        }
+    },
    "prereqs" : {
       "build" : {
          "requires" : {
