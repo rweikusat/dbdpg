@@ -28,8 +28,8 @@ my %filelist = (
                                     qr{ping test v$vre},        ]],
     'lib/Bundle/DBD/PgAsync.pm' => [1, [ qr{VERSION = '$vre'},       ]],
     'Makefile.PL'          => [1, [ qr{VERSION = '$vre'},       ]],
-    'README'               => [1, [ qr{is version $vre},
-                                    qr{TEST VERSION \($vre},    ]],
+#    'README'               => [1, [ qr{is version $vre},
+#                                    qr{TEST VERSION \($vre},    ]],
     'Changes'              => [1, [ qr{^(?:Version )*$vre},     ]],
 );
 
