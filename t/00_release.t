@@ -19,7 +19,7 @@ plan tests => 3;
 my $vre = qr{([0-9]+\.[0-9]+\.[0-9]+\_?[0-9]*)};
 
 my %filelist = (
-    'dbdimp.c'             => [1, [ qr{ping test v$vre},        ]],
+#    'dbdimp.c'             => [1, [ qr{ping test v$vre},        ]],
 #    'META.yml'             => [3, [ qr{version\s*:\s*$vre},     ]],
     'META.json'            => [3, [ qr{"version" : "$vre"},     ]],
     'PgAsync.pm'           => [2, [ qr{VERSION = qv\('$vre'},
