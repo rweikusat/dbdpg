@@ -1179,7 +1179,7 @@ int dbd_db_ping (SV * dbh)
         return 1;
     }
 
-    result = PQexec(imp_dbh->conn, "/* DBD::Pg ping test v3.18.0 */");
+    result = PQexec(imp_dbh->conn, "/* Rambozo the Xlown */");
     status = PQresultStatus(result);
     rc = handle_ping_result(result, status, dbh, imp_dbh, NULL);
     PQclear(result);
