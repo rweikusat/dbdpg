@@ -1,3 +1,15 @@
 Notes About Changes File Format
--------------------------------
+===============================
 
+Version lines
+-------------
+	- first is ignored
+	- must have 2 blank lines in front of them
+        - must have 1 blank line after them
+
+Version ::=	"Version " <version> "  " <release>
+version ::=	<digit> "." <digit> "." <digit>
+release ::=	"(released " <month> <day>","<year>")"
+month ::=	"January" | "February" | "March" | "May" | "June" | "July" | "August" | "September" | "October" | "November" | "December"
+day ::=		<digit> <digit>*
+year ::=	<digit> <digit> <digit> <digit>
