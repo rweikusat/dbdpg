@@ -13,6 +13,17 @@ Version ::=	"Version " <version> "  " <release>
 version ::=	<digit> "." <digit> "." <digit>
 release ::=	"(released " <month> <day>","<year>")"
 month ::=	"January" | "February" | "March" | "May" | "June" | "July" | "August" | "September" | "October" | "November" | "December"
-day ::=		<digit> <digit>*
+day ::=		<digit>+
 year ::=	<digit> <digit> <digit> <digit>
 
+
+RT tickets
+----------
+rt_ord ::=	"#" <digit>+
+rt_space ::=	"   "
+rt_head ::=	"(RT ticket"
+rt_heads ::=	rt_head "s"
+rt_one ::=	rt_space rt_head rt_ord [" and other places"] ")"
+rt_more ::=	rt_space rt_heads rt_ord
+rt_two ::=	rt_more " and " rt_ord ")"
+rt_plus ::=	rt_more (", " rt_ord)* ")"
