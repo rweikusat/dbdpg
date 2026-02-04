@@ -19,11 +19,14 @@ year ::=	<digit> <digit> <digit> <digit>
 
 RT tickets
 ----------
+rt_entry ::=	rt_one | rt_two | rt_list
+rt_one ::=	rt_space rt_head rt_ord [" and other places"] ")"
+rt_two ::=	rt_more " and " rt_ord ")"
+rt_list ::=	rt_more (", " rt_ord)* ")"
+rt_more ::=	rt_space rt_heads rt_ord
+rt_heads ::=	rt_head "s"
+rt_head ::=	"(RT ticket"
 rt_ord ::=	"#" <digit>+
 rt_space ::=	"   "
-rt_head ::=	"(RT ticket"
-rt_heads ::=	rt_head "s"
-rt_one ::=	rt_space rt_head rt_ord [" and other places"] ")"
-rt_more ::=	rt_space rt_heads rt_ord
-rt_two ::=	rt_more " and " rt_ord ")"
-rt_plus ::=	rt_more (", " rt_ord)* ")"
+
+
